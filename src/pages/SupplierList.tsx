@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -20,31 +20,21 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Pencil, Trash2, PlusCircle } from 'lucide-react';
-import { useInventory } from '@/context/InventoryContext'; // Import useInventory
 import { useToast } from '@/components/ui/use-toast'; // Using shadcn's useToast
 
 interface Supplier {
   id: string;
   name: string;
-  contact: string;
-  address: string;
+  contact: string; // Example field
+  address: string; // Example field
 }
 
 const SupplierListPage = () => {
-  const { suppliers, addSupplier, updateSupplier, deleteSupplier } = useInventory(); // Use context
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentSupplier, setCurrentSupplier] = useState<Supplier | null>(null);
   const [formState, setFormState] = useState({ name: '', contact: '', address: '' });
   const { toast } = useToast();
-
-  // Reset form state when dialog opens/closes
-  useEffect(() => {
-    if (!isDialogOpen) {
-      setCurrentSupplier(null);
-      setFormState({ name: '', contact: '', address: '' });
-    }
-  }, [isDialogOpen]);
-
 
   // Handle input changes in the form
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,6 +57,8 @@ const SupplierListPage = () => {
   // Close dialog
   const closeDialog = () => {
     setIsDialogOpen(false);
+    setCurrentSupplier(null);
+    setFormState({ name: '', contact: '', address: '' });
   };
 
   // Save supplier (Add or Edit)
@@ -82,18 +74,35 @@ const SupplierListPage = () => {
 
     if (currentSupplier) {
       // Edit existing supplier
-      updateSupplier({ ...currentSupplier, ...formState }); // Use context function
+      setSuppliers(suppliers.map(sup =>
+        sup.id === currentSupplier.id ? { ...sup, ...formState } : sup
+      ));
+      toast({
+        title: "Berhasil",
+        description: "Data suplier berhasil diupdate.",
+      });
     } else {
       // Add new supplier
-      addSupplier(formState); // Use context function
+      const newSupplier: Supplier = {
+        id: Date.now().toString(), // Simple unique ID
+        ...formState,
+      };
+      setSuppliers([...suppliers, newSupplier]);
+      toast({
+        title: "Berhasil",
+        description: "Suplier baru berhasil ditambahkan.",
+      });
     }
     closeDialog();
   };
 
   // Delete supplier
-  const handleDeleteSupplier = (id: string) => {
-    // TODO: Add confirmation dialog
-    deleteSupplier(id); // Use context function
+  const deleteSupplier = (id: string) => {
+    setSuppliers(suppliers.filter(sup => sup.id !== id));
+    toast({
+      title: "Berhasil",
+      description: "Suplier berhasil dihapus.",
+    });
   };
 
   return (
@@ -138,7 +147,7 @@ const SupplierListPage = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleDeleteSupplier(supplier.id)}
+                    onClick={() => deleteSupplier(supplier.id)}
                   >
                     <Trash2 className="h-4 w-4 text-red-500" />
                   </Button>
