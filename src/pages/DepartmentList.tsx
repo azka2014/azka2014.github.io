@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -20,20 +20,29 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Pencil, Trash2, PlusCircle } from 'lucide-react';
+import { useInventory } from '@/context/InventoryContext'; // Import useInventory
 import { useToast } from '@/components/ui/use-toast'; // Using shadcn's useToast
 
 interface Department {
   id: string;
   name: string;
-  // Add other department fields if needed
 }
 
 const DepartmentListPage = () => {
-  const [departments, setDepartments] = useState<Department[]>([]);
+  const { departments, addDepartment, updateDepartment, deleteDepartment } = useInventory(); // Use context
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentDepartment, setCurrentDepartment] = useState<Department | null>(null);
   const [formState, setFormState] = useState({ name: '' });
   const { toast } = useToast();
+
+   // Reset form state when dialog opens/closes
+   useEffect(() => {
+    if (!isDialogOpen) {
+      setCurrentDepartment(null);
+      setFormState({ name: '' });
+    }
+  }, [isDialogOpen]);
+
 
   // Handle input changes in the form
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,8 +65,6 @@ const DepartmentListPage = () => {
   // Close dialog
   const closeDialog = () => {
     setIsDialogOpen(false);
-    setCurrentDepartment(null);
-    setFormState({ name: '' });
   };
 
   // Save department (Add or Edit)
@@ -73,35 +80,18 @@ const DepartmentListPage = () => {
 
     if (currentDepartment) {
       // Edit existing department
-      setDepartments(departments.map(dep =>
-        dep.id === currentDepartment.id ? { ...dep, ...formState } : dep
-      ));
-      toast({
-        title: "Berhasil",
-        description: "Data departemen berhasil diupdate.",
-      });
+      updateDepartment({ ...currentDepartment, ...formState }); // Use context function
     } else {
       // Add new department
-      const newDepartment: Department = {
-        id: Date.now().toString(), // Simple unique ID
-        ...formState,
-      };
-      setDepartments([...departments, newDepartment]);
-      toast({
-        title: "Berhasil",
-        description: "Departemen baru berhasil ditambahkan.",
-      });
+      addDepartment(formState); // Use context function
     }
     closeDialog();
   };
 
   // Delete department
-  const deleteDepartment = (id: string) => {
-    setDepartments(departments.filter(dep => dep.id !== id));
-    toast({
-      title: "Berhasil",
-      description: "Departemen berhasil dihapus.",
-    });
+  const handleDeleteDepartment = (id: string) => {
+     // TODO: Add confirmation dialog
+    deleteDepartment(id); // Use context function
   };
 
   return (
@@ -142,7 +132,7 @@ const DepartmentListPage = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => deleteDepartment(department.id)}
+                    onClick={() => handleDeleteDepartment(department.id)}
                   >
                     <Trash2 className="h-4 w-4 text-red-500" />
                   </Button>
