@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -15,25 +15,33 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Pencil, Trash2, PlusCircle } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast'; // Using shadcn's useToast
+import { useToast } from '@/components/ui/use-toast';
+import { useData } from '@/context/DataContext'; // Import useData
 
 interface Department {
   id: string;
   name: string;
-  // Add other department fields if needed
 }
 
 const DepartmentListPage = () => {
-  const [departments, setDepartments] = useState<Department[]>([]);
+  const { departments, addDepartment, updateDepartment, deleteDepartment } = useData(); // Use data from context
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentDepartment, setCurrentDepartment] = useState<Department | null>(null);
   const [formState, setFormState] = useState({ name: '' });
   const { toast } = useToast();
+
+  // Effect to update formState when currentDepartment changes (for editing)
+  useEffect(() => {
+    if (currentDepartment) {
+      setFormState({ name: currentDepartment.name });
+    } else {
+      setFormState({ name: '' });
+    }
+  }, [currentDepartment]);
 
   // Handle input changes in the form
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -43,13 +51,7 @@ const DepartmentListPage = () => {
 
   // Open dialog for adding or editing
   const openDialog = (department?: Department) => {
-    if (department) {
-      setCurrentDepartment(department);
-      setFormState({ name: department.name });
-    } else {
-      setCurrentDepartment(null);
-      setFormState({ name: '' });
-    }
+    setCurrentDepartment(department || null);
     setIsDialogOpen(true);
   };
 
@@ -73,20 +75,14 @@ const DepartmentListPage = () => {
 
     if (currentDepartment) {
       // Edit existing department
-      setDepartments(departments.map(dep =>
-        dep.id === currentDepartment.id ? { ...dep, ...formState } : dep
-      ));
+      updateDepartment({ ...currentDepartment, ...formState });
       toast({
         title: "Berhasil",
         description: "Data departemen berhasil diupdate.",
       });
     } else {
       // Add new department
-      const newDepartment: Department = {
-        id: Date.now().toString(), // Simple unique ID
-        ...formState,
-      };
-      setDepartments([...departments, newDepartment]);
+      addDepartment(formState);
       toast({
         title: "Berhasil",
         description: "Departemen baru berhasil ditambahkan.",
@@ -96,8 +92,9 @@ const DepartmentListPage = () => {
   };
 
   // Delete department
-  const deleteDepartment = (id: string) => {
-    setDepartments(departments.filter(dep => dep.id !== id));
+  const handleDeleteDepartment = (id: string) => {
+     // TODO: Add confirmation dialog
+    deleteDepartment(id);
     toast({
       title: "Berhasil",
       description: "Departemen berhasil dihapus.",
@@ -142,7 +139,7 @@ const DepartmentListPage = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => deleteDepartment(department.id)}
+                    onClick={() => handleDeleteDepartment(department.id)}
                   >
                     <Trash2 className="h-4 w-4 text-red-500" />
                   </Button>
