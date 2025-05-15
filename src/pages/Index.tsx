@@ -1,12 +1,12 @@
-import Layout from "@/components/Layout"; // Import Layout if not already wrapped in App.tsx
+// Update this page (the content is just a fallback if you fail to update the page)
 
 const Index = () => {
   return (
-    <div className="flex items-center justify-center h-full"> {/* Use h-full to center within main content area */}
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Selamat Datang di Aplikasi Persediaan RSUD Kabupaten Karo</h1>
-        <p className="text-xl text-muted-foreground">
-          Pilih menu di samping untuk memulai.
+        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
+        <p className="text-xl text-gray-600">
+          Start building your amazing project here!
         </p>
       </div>
     </div>
