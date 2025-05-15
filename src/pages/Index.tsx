@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Package, Building, Users } from 'lucide-react'; // Icons
+import { Package, Building, Users, ArrowDownToLine, ArrowUpFromLine, FileText } from 'lucide-react'; // Icons
 
 const Index = () => {
   return (
@@ -62,8 +62,61 @@ const Index = () => {
             </Button>
           </CardContent>
         </Card>
+
+        {/* Card for Incoming Transactions */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Barang Masuk
+            </CardTitle>
+            <ArrowDownToLine className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Catat transaksi barang masuk dari suplier.
+            </p>
+            <Button asChild>
+              <Link to="/incoming">Catat Barang Masuk</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Card for Outgoing Transactions */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Barang Keluar
+            </CardTitle>
+            <ArrowUpFromLine className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Catat transaksi barang keluar ke departemen.
+            </p>
+            <Button asChild>
+              <Link to="/outgoing">Catat Barang Keluar</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+         {/* Card for Reports */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Laporan
+            </CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Lihat laporan persediaan dan transaksi.
+            </p>
+            <Button asChild>
+              <Link to="/reports">Lihat Laporan</Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
-       {/* You can add more sections here later, e.g., Transactions */}
     </div>
   );
 };
