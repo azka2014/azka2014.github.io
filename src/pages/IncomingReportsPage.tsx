@@ -24,10 +24,10 @@ const IncomingReportsPage = () => {
     incomingTransactions,
     items,
     suppliers,
-    departments,
+    // departments, // Removed departments import
     getItemById,
     getSupplierById,
-    getDepartmentById,
+    // getDepartmentById, // Removed getDepartmentById import
     loading
   } = useInventory();
 
@@ -36,7 +36,7 @@ const IncomingReportsPage = () => {
   // State untuk filter (nilai yang dipilih di UI)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null); // State for supplier filter
-  const [selectedDepartmentId, setSelectedDepartmentId] = useState<string | null>(null);
+  // const [selectedDepartmentId, setSelectedDepartmentId] = useState<string | null>(null); // Removed department state
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
   // State untuk memicu pemfilteran saat tombol Proses diklik
@@ -66,18 +66,7 @@ const IncomingReportsPage = () => {
         filtered = filtered.filter(tx => tx.supplier_id === selectedSupplierId);
     }
 
-    // Department filter logic (still noted as potentially not applicable based on schema)
-    if (selectedDepartmentId) {
-        // As noted before, incoming_transactions table does not have department_id.
-        // This filter will likely result in an empty list if a department is selected.
-        console.warn("Department filter applied to Incoming Transactions. Note: incoming_transactions table does not have a 'department_id' column. This filter will likely return an empty list with the current database schema.");
-        // To make the filter functional based on the *request*, I'll add a filter that
-        // will always return an empty array if a department is selected, as there's
-        // no department_id in incoming_transactions.
-        // If you meant to filter based on something else, please let me know.
-        filtered = []; // This line makes the filter return empty if department is selected
-    }
-
+    // Removed department filter logic
 
     if (selectedDate) {
       const filterDateString = format(selectedDate, 'yyyy-MM-dd');
@@ -86,7 +75,7 @@ const IncomingReportsPage = () => {
 
     console.log("Filtered Incoming Transactions count:", filtered.length);
     return filtered;
-  }, [incomingTransactions, selectedItemId, selectedSupplierId, selectedDepartmentId, selectedDate, applyFiltersTrigger]); // Add all filter states and trigger to dependencies
+  }, [incomingTransactions, selectedItemId, selectedSupplierId, selectedDate, applyFiltersTrigger]); // Removed selectedDepartmentId from dependencies
 
 
   return (
@@ -132,8 +121,8 @@ const IncomingReportsPage = () => {
               </Select>
             </div>
 
-            {/* Filter Departemen (Note: May not be applicable based on DB schema) */}
-             <div>
+            {/* Removed Filter Departemen */}
+             {/* <div>
               <Label htmlFor="filterDepartment" className="mb-1 block">Departemen</Label>
               <Select onValueChange={(value) => setSelectedDepartmentId(value)} value={selectedDepartmentId || ''}>
                 <SelectTrigger id="filterDepartment">
@@ -146,7 +135,7 @@ const IncomingReportsPage = () => {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </div> */}
 
             {/* Filter Tanggal */}
             <div>
