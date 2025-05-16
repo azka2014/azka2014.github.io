@@ -133,7 +133,7 @@ const DepartmentListPage = () => {
   // Tampilkan loading jika autentikasi atau data inventory sedang dimuat
   if (authLoading || inventoryLoading) {
       console.log("DepartmentList.tsx: Displaying loading state");
-      return <div>Loading...</div>; // Atau spinner, dll.
+      return <div>Memuat data...</div>; // Atau spinner, dll.
   }
 
   console.log("DepartmentList.tsx: Displaying content");
@@ -185,6 +185,35 @@ const DepartmentListPage = () => {
             )}
           </TableBody>
         </Table>
+
+
+      {/* Add/Edit Department Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{currentDepartment ? 'Edit Departemen' : 'Tambah Departemen'}</DialogTitle>
+            <DialogDescription>
+              {currentDepartment ? 'Edit data departemen.' : 'Tambahkan departemen baru.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">
+                Nama
+              </Label>
+              <Input
+                id="name"
+                value={formState.name}
+                onChange={handleInputChange}
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeDialog}>Batal</Button>
+            <Button onClick={saveDepartment}>{currentDepartment ? 'Simpan Perubahan' : 'Tambah Departemen'}</Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
     </div>
   );
