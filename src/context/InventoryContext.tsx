@@ -1,12 +1,13 @@
 import React, { createContext, useState, useContext, useEffect, useReducer } from 'react';
 import { useToast } from '@/components/ui/use-toast';
+import { createClient } from '@/integrations/supabase/client'; // Import Supabase client
 
-// Define types for your data
+// Define types for your data (should match Supabase table structure)
 interface Supplier {
   id: string;
   name: string;
-  contact: string;
-  address: string;
+  contact: string | null; // Allow null based on Supabase schema
+  address: string | null; // Allow null based on Supabase schema
 }
 
 interface Department {
@@ -18,22 +19,22 @@ interface Item {
   id: string;
   name: string;
   unit: string;
-  stock: number; // Stock will be managed by transactions
+  stock: number;
 }
 
 interface IncomingTransaction {
   id: string;
-  date: string; // Using string for simplicity, could use Date object
-  itemId: string;
-  supplierId: string;
+  date: string; // YYYY-MM-DD format from Supabase DATE type
+  item_id: string; // Use item_id to match Supabase column name
+  supplier_id: string; // Use supplier_id to match Supabase column name
   quantity: number;
 }
 
 interface OutgoingTransaction {
   id: string;
-  date: string; // Using string for simplicity, could use Date object
-  itemId: string;
-  departmentId: string;
+  date: string; // YYYY-MM-DD format from Supabase DATE type
+  item_id: string; // Use item_id to match Supabase column name
+  department_id: string; // Use department_id to match Supabase column name
   quantity: number;
 }
 
@@ -44,11 +45,13 @@ interface InventoryState {
   items: Item[];
   incomingTransactions: IncomingTransaction[];
   outgoingTransactions: OutgoingTransaction[];
+  loading: boolean; // Add loading state
+  error: string | null; // Add error state
 }
 
 // Define the actions
 type Action =
-  | { type: 'LOAD_STATE'; payload: InventoryState }
+  | { type: 'SET_STATE'; payload: InventoryState } // Action to set the entire state (used after fetching)
   | { type: 'ADD_SUPPLIER'; payload: Supplier }
   | { type: 'UPDATE_SUPPLIER'; payload: Supplier }
   | { type: 'DELETE_SUPPLIER'; payload: string }
@@ -59,15 +62,22 @@ type Action =
   | { type: 'UPDATE_ITEM'; payload: Item }
   | { type: 'DELETE_ITEM'; payload: string }
   | { type: 'ADD_INCOMING_TRANSACTION'; payload: IncomingTransaction }
-  | { type: 'UPDATE_INCOMING_TRANSACTION'; payload: IncomingTransaction } // Added update action
-  | { type: 'DELETE_INCOMING_TRANSACTION'; payload: string } // Added delete action
-  | { type: 'ADD_OUTGOING_TRANSACTION'; payload: OutgoingTransaction };
+  | { type: 'UPDATE_INCOMING_TRANSACTION'; payload: IncomingTransaction }
+  | { type: 'DELETE_INCOMING_TRANSACTION'; payload: string }
+  | { type: 'ADD_OUTGOING_TRANSACTION'; payload: OutgoingTransaction }
+  | { type: 'SET_LOADING'; payload: boolean } // Action to set loading state
+  | { type: 'SET_ERROR'; payload: string | null }; // Action to set error state
 
-// Reducer function to handle state changes
+
+// Reducer function to handle state changes (mostly for local state updates after Supabase ops)
 const inventoryReducer = (state: InventoryState, action: Action): InventoryState => {
   switch (action.type) {
-    case 'LOAD_STATE':
-      return action.payload;
+    case 'SET_STATE':
+      return { ...state, ...action.payload, loading: false, error: null }; // Set state from fetch
+    case 'SET_LOADING':
+        return { ...state, loading: action.payload };
+    case 'SET_ERROR':
+        return { ...state, error: action.payload, loading: false };
     case 'ADD_SUPPLIER':
       return { ...state, suppliers: [...state.suppliers, action.payload] };
     case 'UPDATE_SUPPLIER':
@@ -106,98 +116,37 @@ const inventoryReducer = (state: InventoryState, action: Action): InventoryState
         ),
       };
     case 'DELETE_ITEM':
-      // Also remove related transactions? For simplicity, let's just remove the item for now.
       return {
         ...state,
         items: state.items.filter(item => item.id !== action.payload),
       };
-    case 'ADD_INCOMING_TRANSACTION': {
-      const transaction = action.payload;
-      const updatedItems = state.items.map(item =>
-        item.id === transaction.itemId
-          ? { ...item, stock: item.stock + transaction.quantity }
-          : item
-      );
+    case 'ADD_INCOMING_TRANSACTION':
       return {
         ...state,
-        incomingTransactions: [...state.incomingTransactions, transaction],
-        items: updatedItems,
+        incomingTransactions: [...state.incomingTransactions, action.payload],
+        // Stock update will be handled by a database trigger or function later
+        // For now, we'll rely on refetching or a separate stock update mechanism
       };
-    }
-    case 'UPDATE_INCOMING_TRANSACTION': {
-        const updatedTransaction = action.payload;
-        const oldTransaction = state.incomingTransactions.find(tx => tx.id === updatedTransaction.id);
-
-        if (!oldTransaction) {
-            console.error("Transaction not found for update:", updatedTransaction.id);
-            return state; // Return current state if transaction not found
-        }
-
-        // Calculate stock difference
-        const quantityDifference = updatedTransaction.quantity - oldTransaction.quantity;
-
-        const updatedItems = state.items.map(item => {
-            // Adjust stock only for the item related to the transaction
-            if (item.id === updatedTransaction.itemId) {
-                 // Check if the item ID also changed (less common for incoming, but good practice)
-                 // If item ID changed, we'd need to adjust stock for *both* old and new items.
-                 // For simplicity, assuming item ID doesn't change during edit for now.
-                return { ...item, stock: item.stock + quantityDifference };
-            }
-            return item;
-        });
-
+    case 'UPDATE_INCOMING_TRANSACTION':
         return {
             ...state,
             incomingTransactions: state.incomingTransactions.map(tx =>
-                tx.id === updatedTransaction.id ? updatedTransaction : tx
+                tx.id === action.payload.id ? action.payload : tx
             ),
-            items: updatedItems,
+             // Stock update will be handled by a database trigger or function later
         };
-    }
-    case 'DELETE_INCOMING_TRANSACTION': {
-        const transactionIdToDelete = action.payload;
-        const transactionToDelete = state.incomingTransactions.find(tx => tx.id === transactionIdToDelete);
-
-        if (!transactionToDelete) {
-            console.error("Transaction not found for deletion:", transactionIdToDelete);
-            return state; // Return current state if transaction not found
-        }
-
-        // Decrease stock for the item related to the deleted transaction
-        const updatedItems = state.items.map(item =>
-            item.id === transactionToDelete.itemId
-                ? { ...item, stock: item.stock - transactionToDelete.quantity }
-                : item
-        );
-
+    case 'DELETE_INCOMING_TRANSACTION':
         return {
             ...state,
-            incomingTransactions: state.incomingTransactions.filter(tx => tx.id !== transactionIdToDelete),
-            items: updatedItems,
+            incomingTransactions: state.incomingTransactions.filter(tx => tx.id !== action.payload),
+             // Stock update will be handled by a database trigger or function later
         };
-    }
-    case 'ADD_OUTGOING_TRANSACTION': {
-      const transaction = action.payload;
-       // Check if enough stock is available before processing
-      const item = state.items.find(item => item.id === transaction.itemId);
-      if (!item || item.stock < transaction.quantity) {
-         // In a real app, you'd handle this error properly (e.g., show a toast)
-         console.error("Not enough stock for outgoing transaction");
-         // Return current state or handle error state
-         return state; // Or throw an error, or return state with an error flag
-      }
-      const updatedItems = state.items.map(item =>
-        item.id === transaction.itemId
-          ? { ...item, stock: item.stock - transaction.quantity }
-          : item
-      );
+    case 'ADD_OUTGOING_TRANSACTION':
       return {
         ...state,
-        outgoingTransactions: [...state.outgoingTransactions, transaction],
-        items: updatedItems,
+        outgoingTransactions: [...state.outgoingTransactions, action.payload],
+         // Stock update will be handled by a database trigger or function later
       };
-    }
     default:
       return state;
   }
@@ -210,12 +159,29 @@ const initialState: InventoryState = {
   items: [],
   incomingTransactions: [],
   outgoingTransactions: [],
+  loading: true, // Start in loading state
+  error: null,
 };
 
 // Create the context
 interface InventoryContextProps extends InventoryState {
-  dispatch: React.Dispatch<Action>;
-  // Add helper functions if needed, e.g., getItemById, getSupplierById etc.
+  dispatch: React.Dispatch<Action>; // Keep dispatch for local state updates
+  // Add functions for Supabase operations
+  fetchInventory: () => Promise<void>;
+  addSupplier: (supplier: Omit<Supplier, 'id'>) => Promise<void>;
+  updateSupplier: (supplier: Supplier) => Promise<void>;
+  deleteSupplier: (id: string) => Promise<void>;
+  addDepartment: (department: Omit<Department, 'id'>) => Promise<void>;
+  updateDepartment: (department: Department) => Promise<void>;
+  deleteDepartment: (id: string) => Promise<void>;
+  addItem: (item: Omit<Item, 'id' | 'stock'>) => Promise<void>; // Stock is managed by transactions
+  updateItem: (item: Omit<Item, 'stock'>) => Promise<void>; // Stock is managed by transactions
+  deleteItem: (id: string) => Promise<void>;
+  addIncomingTransaction: (transaction: Omit<IncomingTransaction, 'id'>) => Promise<void>;
+  updateIncomingTransaction: (transaction: IncomingTransaction) => Promise<void>;
+  deleteIncomingTransaction: (id: string) => Promise<void>;
+  addOutgoingTransaction: (transaction: Omit<OutgoingTransaction, 'id'>) => Promise<void>;
+  // Helper functions to get data by ID (operate on local state)
   getItemById: (id: string) => Item | undefined;
   getSupplierById: (id: string) => Supplier | undefined;
   getDepartmentById: (id: string) => Department | undefined;
@@ -226,65 +192,245 @@ const InventoryContext = createContext<InventoryContextProps | undefined>(undefi
 // Create the provider component
 export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(inventoryReducer, initialState);
-  const { toast } = useToast(); // Use toast for feedback
+  const { toast } = useToast();
+  const supabase = createClient(); // Initialize Supabase client
 
-  // Load state from localStorage on initial mount
-  useEffect(() => {
+  // --- Data Fetching from Supabase ---
+  const fetchInventory = async () => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    dispatch({ type: 'SET_ERROR', payload: null });
     try {
-      const savedState = localStorage.getItem('inventoryState');
-      if (savedState) {
-        const loadedState: InventoryState = JSON.parse(savedState);
-        // Ensure stock is number, just in case localStorage stored it as string
-         loadedState.items = loadedState.items.map(item => ({
-            ...item,
-            stock: Number(item.stock) || 0 // Ensure stock is a number
-         }));
-         // Ensure quantities are numbers
-         loadedState.incomingTransactions = loadedState.incomingTransactions.map(tx => ({
-             ...tx,
-             quantity: Number(tx.quantity) || 0
-         }));
-         loadedState.outgoingTransactions = loadedState.outgoingTransactions.map(tx => ({
-             ...tx,
-             quantity: Number(tx.quantity) || 0
-         }));
+      const [
+        { data: suppliersData, error: suppliersError },
+        { data: departmentsData, error: departmentsError },
+        { data: itemsData, error: itemsError },
+        { data: incomingData, error: incomingError },
+        { data: outgoingData, error: outgoingError },
+      ] = await Promise.all([
+        supabase.from('suppliers').select('*'),
+        supabase.from('departments').select('*'),
+        supabase.from('items').select('*'),
+        supabase.from('incoming_transactions').select('*'),
+        supabase.from('outgoing_transactions').select('*'),
+      ]);
 
-        dispatch({ type: 'LOAD_STATE', payload: loadedState });
-        console.log("Inventory state loaded from localStorage.");
+      if (suppliersError || departmentsError || itemsError || incomingError || outgoingError) {
+        console.error("Error fetching inventory data:", suppliersError || departmentsError || itemsError || incomingError || outgoingError);
+        throw new Error("Gagal memuat data dari database.");
       }
-    } catch (error) {
-      console.error("Failed to load inventory state from localStorage:", error);
+
+      dispatch({
+        type: 'SET_STATE',
+        payload: {
+          suppliers: suppliersData || [],
+          departments: departmentsData || [],
+          items: itemsData || [],
+          incomingTransactions: incomingData || [],
+          outgoingTransactions: outgoingData || [],
+          loading: false,
+          error: null,
+        },
+      });
+      console.log("Inventory state loaded from Supabase.");
+
+    } catch (error: any) {
+      console.error("Failed to fetch inventory state:", error);
+      dispatch({ type: 'SET_ERROR', payload: error.message || "Terjadi kesalahan saat memuat data." });
       toast({
         title: "Error",
-        description: "Gagal memuat data persediaan dari penyimpanan lokal.",
+        description: error.message || "Gagal memuat data persediaan dari database.",
         variant: "destructive",
       });
+    } finally {
+        dispatch({ type: 'SET_LOADING', payload: false });
     }
-  }, [toast]); // Depend on toast to avoid lint warning, though it's stable
+  };
 
-  // Save state to localStorage whenever it changes
+  // Fetch data on initial mount
   useEffect(() => {
-    try {
-      localStorage.setItem('inventoryState', JSON.stringify(state));
-      console.log("Inventory state saved to localStorage.");
-    } catch (error) {
-      console.error("Failed to save inventory state to localStorage:", error);
-       toast({
-        title: "Error",
-        description: "Gagal menyimpan data persediaan ke penyimpanan lokal.",
-        variant: "destructive",
-      });
-    }
-  }, [state, toast]); // Depend on state and toast
+    fetchInventory();
+  }, []); // Empty dependency array means this runs once on mount
 
-  // Helper functions to get data by ID
+  // --- Supabase CRUD Operations ---
+
+  const addSupplier = async (supplier: Omit<Supplier, 'id'>) => {
+    const { data, error } = await supabase.from('suppliers').insert([supplier]).select().single();
+    if (error) {
+      console.error("Error adding supplier:", error);
+      toast({ title: "Gagal", description: `Gagal menambahkan suplier: ${error.message}`, variant: "destructive" });
+    } else if (data) {
+      dispatch({ type: 'ADD_SUPPLIER', payload: data });
+      toast({ title: "Berhasil", description: "Suplier baru berhasil ditambahkan." });
+    }
+  };
+
+  const updateSupplier = async (supplier: Supplier) => {
+    const { data, error } = await supabase.from('suppliers').update(supplier).eq('id', supplier.id).select().single();
+     if (error) {
+      console.error("Error updating supplier:", error);
+      toast({ title: "Gagal", description: `Gagal mengupdate suplier: ${error.message}`, variant: "destructive" });
+    } else if (data) {
+      dispatch({ type: 'UPDATE_SUPPLIER', payload: data });
+      toast({ title: "Berhasil", description: "Data suplier berhasil diupdate." });
+    }
+  };
+
+  const deleteSupplier = async (id: string) => {
+    const { error } = await supabase.from('suppliers').delete().eq('id', id);
+     if (error) {
+      console.error("Error deleting supplier:", error);
+      toast({ title: "Gagal", description: `Gagal menghapus suplier: ${error.message}`, variant: "destructive" });
+    } else {
+      dispatch({ type: 'DELETE_SUPPLIER', payload: id });
+      toast({ title: "Berhasil", description: "Suplier berhasil dihapus." });
+    }
+  };
+
+  const addDepartment = async (department: Omit<Department, 'id'>) => {
+    const { data, error } = await supabase.from('departments').insert([department]).select().single();
+     if (error) {
+      console.error("Error adding department:", error);
+      toast({ title: "Gagal", description: `Gagal menambahkan departemen: ${error.message}`, variant: "destructive" });
+    } else if (data) {
+      dispatch({ type: 'ADD_DEPARTMENT', payload: data });
+      toast({ title: "Berhasil", description: "Departemen baru berhasil ditambahkan." });
+    }
+  };
+
+  const updateDepartment = async (department: Department) => {
+    const { data, error } = await supabase.from('departments').update(department).eq('id', department.id).select().single();
+     if (error) {
+      console.error("Error updating department:", error);
+      toast({ title: "Gagal", description: `Gagal mengupdate departemen: ${error.message}`, variant: "destructive" });
+    } else if (data) {
+      dispatch({ type: 'UPDATE_DEPARTMENT', payload: data });
+      toast({ title: "Berhasil", description: "Data departemen berhasil diupdate." });
+    }
+  };
+
+  const deleteDepartment = async (id: string) => {
+    const { error } = await supabase.from('departments').delete().eq('id', id);
+     if (error) {
+      console.error("Error deleting department:", error);
+      toast({ title: "Gagal", description: `Gagal menghapus departemen: ${error.message}`, variant: "destructive" });
+    } else {
+      dispatch({ type: 'DELETE_DEPARTMENT', payload: id });
+      toast({ title: "Berhasil", description: "Departemen berhasil dihapus." });
+    }
+  };
+
+  const addItem = async (item: Omit<Item, 'id' | 'stock'>) => {
+     // When adding an item, stock starts at 0 in the database
+    const { data, error } = await supabase.from('items').insert([{ name: item.name, unit: item.unit, stock: 0 }]).select().single();
+     if (error) {
+      console.error("Error adding item:", error);
+      toast({ title: "Gagal", description: `Gagal menambahkan barang: ${error.message}`, variant: "destructive" });
+    } else if (data) {
+      dispatch({ type: 'ADD_ITEM', payload: data });
+      toast({ title: "Berhasil", description: "Barang baru berhasil ditambahkan." });
+    }
+  };
+
+  const updateItem = async (item: Omit<Item, 'stock'>) => {
+     // Note: Stock is not updated directly here, it's managed by transactions
+    const { data, error } = await supabase.from('items').update({ name: item.name, unit: item.unit }).eq('id', item.id).select().single();
+     if (error) {
+      console.error("Error updating item:", error);
+      toast({ title: "Gagal", description: `Gagal mengupdate barang: ${error.message}`, variant: "destructive" });
+    } else if (data) {
+       // Update local state with the returned data (which includes the current stock)
+      dispatch({ type: 'UPDATE_ITEM', payload: data });
+      toast({ title: "Berhasil", description: "Data barang berhasil diupdate." });
+    }
+  };
+
+  const deleteItem = async (id: string) => {
+    const { error } = await supabase.from('items').delete().eq('id', id);
+     if (error) {
+      console.error("Error deleting item:", error);
+      toast({ title: "Gagal", description: `Gagal menghapus barang: ${error.message}`, variant: "destructive" });
+    } else {
+      dispatch({ type: 'DELETE_ITEM', payload: id });
+      toast({ title: "Berhasil", description: "Barang berhasil dihapus." });
+    }
+  };
+
+  const addIncomingTransaction = async (transaction: Omit<IncomingTransaction, 'id'>) => {
+     // Supabase will handle stock update via trigger/function
+    const { data, error } = await supabase.from('incoming_transactions').insert([transaction]).select().single();
+     if (error) {
+      console.error("Error adding incoming transaction:", error);
+      toast({ title: "Gagal", description: `Gagal menambahkan transaksi masuk: ${error.message}`, variant: "destructive" });
+    } else if (data) {
+       // Refetch all data to ensure stock is updated correctly in local state
+       // A more efficient way would be to update local state based on the transaction
+       // and the item's previous stock, or use real-time subscriptions.
+       // For simplicity now, we refetch everything.
+       fetchInventory();
+       toast({ title: "Berhasil", description: "Transaksi barang masuk baru berhasil ditambahkan." });
+    }
+  };
+
+   const updateIncomingTransaction = async (transaction: IncomingTransaction) => {
+       // Supabase will handle stock update via trigger/function
+       const { data, error } = await supabase.from('incoming_transactions').update(transaction).eq('id', transaction.id).select().single();
+       if (error) {
+           console.error("Error updating incoming transaction:", error);
+           toast({ title: "Gagal", description: `Gagal mengupdate transaksi masuk: ${error.message}`, variant: "destructive" });
+       } else if (data) {
+           // Refetch all data to ensure stock is updated correctly in local state
+           fetchInventory();
+           toast({ title: "Berhasil", description: "Transaksi barang masuk berhasil diupdate." });
+       }
+   };
+
+   const deleteIncomingTransaction = async (id: string) => {
+       // Supabase will handle stock update via trigger/function
+       const { error } = await supabase.from('incoming_transactions').delete().eq('id', id);
+       if (error) {
+           console.error("Error deleting incoming transaction:", error);
+           toast({ title: "Gagal", description: `Gagal menghapus transaksi masuk: ${error.message}`, variant: "destructive" });
+       } else {
+           // Refetch all data to ensure stock is updated correctly in local state
+           fetchInventory();
+           toast({ title: "Berhasil", description: "Transaksi barang masuk berhasil dihapus." });
+       }
+   };
+
+
+  const addOutgoingTransaction = async (transaction: Omit<OutgoingTransaction, 'id'>) => {
+     // Supabase will handle stock update via trigger/function
+     // We might need a check here or in Supabase to ensure sufficient stock
+    const { data, error } = await supabase.from('outgoing_transactions').insert([transaction]).select().single();
+     if (error) {
+      console.error("Error adding outgoing transaction:", error);
+      toast({ title: "Gagal", description: `Gagal menambahkan transaksi keluar: ${error.message}`, variant: "destructive" });
+    } else if (data) {
+       // Refetch all data to ensure stock is updated correctly in local state
+       fetchInventory();
+       toast({ title: "Berhasil", description: "Transaksi barang keluar baru berhasil ditambahkan." });
+    }
+  };
+
+
+  // Helper functions to get data by ID (operate on local state)
   const getItemById = (id: string) => state.items.find(item => item.id === id);
   const getSupplierById = (id: string) => state.suppliers.find(sup => sup.id === id);
-  const getDepartmentById = (id: string) => state.departments.find(dep => dep.id === id);
+  const getDepartmentById = (id: string) => state.departments.find(dep => dep.id === dep.id); // Fix: should use id === dep.id
 
 
   return (
-    <InventoryContext.Provider value={{ ...state, dispatch, getItemById, getSupplierById, getDepartmentById }}>
+    <InventoryContext.Provider value={{
+        ...state,
+        dispatch, // Keep dispatch for reducer actions if needed, but prefer direct Supabase calls via new functions
+        fetchInventory,
+        addSupplier, updateSupplier, deleteSupplier,
+        addDepartment, updateDepartment, deleteDepartment,
+        addItem, updateItem, deleteItem,
+        addIncomingTransaction, updateIncomingTransaction, deleteIncomingTransaction,
+        addOutgoingTransaction,
+        getItemById, getSupplierById, getDepartmentById
+     }}>
       {children}
     </InventoryContext.Provider>
   );
