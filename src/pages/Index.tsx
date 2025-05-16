@@ -1,13 +1,34 @@
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Package, Building, Users, ArrowDownToLine, ArrowUpFromLine, FileText } from 'lucide-react'; // Icons
+import { Package, Building, Users, ArrowDownToLine, ArrowUpFromLine, FileText } from 'lucide-react';
+import { useInventory } from '@/context/InventoryContext'; // Import context
+import TransactionChart from '@/components/TransactionChart'; // Import chart component
+import LowStockItems from '@/components/LowStockItems'; // Import low stock component
 
 const Index = () => {
+  const { items, incomingTransactions, outgoingTransactions } = useInventory(); // Get data from context
+
+  // Calculate total incoming and outgoing quantities for the chart
+  const totalIncoming = incomingTransactions.reduce((sum, tx) => sum + tx.quantity, 0);
+  const totalOutgoing = outgoingTransactions.reduce((sum, tx) => sum + tx.quantity, 0);
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold text-center mb-8">Sistem Manajemen Persediaan</h1>
 
+      {/* Transaction Summary Chart */}
+      <div className="mb-8">
+        <TransactionChart incomingTotal={totalIncoming} outgoingTotal={totalOutgoing} />
+      </div>
+
+      {/* Low Stock Items List */}
+       <div className="mb-8">
+        <LowStockItems items={items} lowStockThreshold={5} />
+      </div>
+
+
+      {/* Navigation Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Card for Items */}
         <Card>
