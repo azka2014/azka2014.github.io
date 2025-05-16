@@ -1,28 +1,35 @@
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client'; // Import instance supabase
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react'; // Import useState
 import { useNavigate } from 'react-router-dom';
-import { useSessionContext } from '@supabase/auth-ui-react'; // Import useSessionContext hook
+// Hapus import useSessionContext
+// import { useSessionContext } from '@supabase/auth-ui-react';
 
 function Login() {
   const navigate = useNavigate();
-  const { session } = useSessionContext(); // Gunakan useSessionContext dari context
+  const [loading, setLoading] = useState(true); // Tambahkan state loading
 
-  // Redirect jika pengguna sudah login
+  // Cek sesi saat komponen dimuat
   useEffect(() => {
-    if (session) {
-      navigate('/'); // Arahkan ke halaman utama jika sudah login
-    }
-  }, [session, navigate]); // Tambahkan session dan navigate sebagai dependency
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate('/'); // Arahkan ke halaman utama jika sudah login
+      } else {
+        setLoading(false); // Sesi tidak ada, tampilkan form login
+      }
+    };
 
-  // Jika session masih loading atau sudah ada, jangan tampilkan form login
-  // useSessionContext juga menyediakan isLoading, bisa digunakan jika perlu loading state
-  if (session) {
-      return null; // Atau tampilkan loading spinner jika diinginkan
+    checkSession();
+  }, [navigate]); // Tambahkan navigate sebagai dependency
+
+  // Jika masih loading, tampilkan loading spinner atau null
+  if (loading) {
+      return <div>Loading...</div>; // Atau null, atau spinner
   }
 
-
+  // Jika tidak loading dan tidak ada sesi, tampilkan form login
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="w-full max-w-md p-8 space-y-6 bg-white rounded shadow-md">

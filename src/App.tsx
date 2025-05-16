@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Outlet, Navigate, useNavigate } from "react-router-dom"; // Import Navigate and useNavigate
+import { BrowserRouter, Routes, Route } from "react-router-dom"; // Hapus Navigate dan useNavigate
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import SupplierListPage from "./pages/SupplierList";
@@ -13,28 +13,27 @@ import OutgoingTransactionListPage from "./pages/OutgoingTransactionList";
 import ReportsPage from "./pages/ReportsPage";
 import MainLayout from "./components/MainLayout";
 import Login from "./pages/Login"; // Import Login page
-import { useSessionContext } from '@supabase/auth-ui-react'; // Import useSessionContext
+// Hapus import useSessionContext
+// import { useSessionContext } from '@supabase/auth-ui-react';
 
 const queryClient = new QueryClient();
 
-// Component untuk melindungi rute
+// Hapus komponen ProtectedRoute
+/*
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
-  const { session, isLoading } = useSessionContext(); // Dapatkan sesi dan loading state dari context
+  const { session, isLoading } = useSessionContext();
 
-  // Jika masih loading, bisa tampilkan sesuatu (opsional)
   if (isLoading) {
-      return <div>Loading...</div>; // Atau spinner, dll.
+      return <div>Loading...</div>;
   }
 
-  // Jika sesi belum ada, arahkan ke halaman login
   if (!session) {
     return <Navigate to="/login" replace />;
   }
 
-  // Jika sesi ada, render children (konten rute yang dilindungi)
   return children;
 };
-
+*/
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -46,16 +45,9 @@ const App = () => (
           {/* Rute Login */}
           <Route path="/login" element={<Login />} />
 
-          {/* Rute yang dilindungi, menggunakan ProtectedRoute */}
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <MainLayout />
-              </ProtectedRoute>
-            }
-          >
-            {/* Rute nested di dalam MainLayout */}
+          {/* Rute yang sebelumnya dilindungi, sekarang langsung di dalam MainLayout */}
+          {/* Logika proteksi akan ditambahkan di dalam komponen halaman itu sendiri */}
+          <Route path="/" element={<MainLayout />}>
             <Route index element={<Index />} />
             <Route path="suppliers" element={<SupplierListPage />} />
             <Route path="departments" element={<DepartmentListPage />} />

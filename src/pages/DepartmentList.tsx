@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Import useEffect
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -22,6 +22,8 @@ import { Label } from '@/components/ui/label';
 import { Pencil, Trash2, PlusCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useInventory } from '@/context/InventoryContext'; // Import the context hook
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { supabase } from '@/integrations/supabase/client'; // Import supabase client
 
 interface Department {
   id: string;
@@ -30,7 +32,25 @@ interface Department {
 
 const DepartmentListPage = () => {
   // Gunakan fungsi CRUD Supabase dari useInventory
-  const { departments, addDepartment, updateDepartment, deleteDepartment, loading } = useInventory();
+  const { departments, addDepartment, updateDepartment, deleteDepartment, loading: inventoryLoading } = useInventory(); // Gunakan loading dari context
+  const navigate = useNavigate();
+  const [authLoading, setAuthLoading] = useState(true); // State loading untuk autentikasi
+
+  // Cek sesi saat komponen dimuat
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate('/login', { replace: true }); // Arahkan ke login jika tidak ada sesi
+      } else {
+        setAuthLoading(false); // Sesi ada, set authLoading false
+      }
+    };
+
+    checkSession();
+  }, [navigate]); // Tambahkan navigate sebagai dependency
+
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentDepartment, setCurrentDepartment] = useState<Department | null>(null);
   const [formState, setFormState] = useState({ name: '' });
@@ -96,6 +116,11 @@ const DepartmentListPage = () => {
      }
   };
 
+  // Tampilkan loading jika autentikasi atau data inventory sedang dimuat
+  if (authLoading || inventoryLoading) {
+      return <div>Loading...</div>; // Atau spinner, dll.
+  }
+
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-4">
@@ -106,21 +131,18 @@ const DepartmentListPage = () => {
         </Button>
       </div>
 
-      {loading ? (
-          <p>Memuat data...</p>
-      ) : (
-        <Table>
-          <TableHeader>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Nama Departemen</TableHead>
+            <TableHead className="text-right">Aksi</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {departments.length === 0 ? (
             <TableRow>
-              <TableHead>Nama Departemen</TableHead>
-              <TableHead className="text-right">Aksi</TableHead>
+              <TableCell colSpan={2} className="text-center">Belum ada data departemen.</TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {departments.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={2} className="text-center">Belum ada data departemen.</TableCell>
-              </TableRow>
             ) : (
               departments.map((department) => (
                 <TableRow key={department.id}>

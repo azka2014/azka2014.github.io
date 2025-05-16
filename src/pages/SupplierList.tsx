@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Import useEffect
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -22,6 +22,8 @@ import { Label } from '@/components/ui/label';
 import { Pencil, Trash2, PlusCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useInventory } from '@/context/InventoryContext'; // Import the context hook
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { supabase } from '@/integrations/supabase/client'; // Import supabase client
 
 interface Supplier {
   id: string;
@@ -32,7 +34,25 @@ interface Supplier {
 
 const SupplierListPage = () => {
   // Gunakan fungsi CRUD Supabase dari useInventory
-  const { suppliers, addSupplier, updateSupplier, deleteSupplier, loading } = useInventory();
+  const { suppliers, addSupplier, updateSupplier, deleteSupplier, loading: inventoryLoading } = useInventory(); // Gunakan loading dari context
+  const navigate = useNavigate();
+  const [authLoading, setAuthLoading] = useState(true); // State loading untuk autentikasi
+
+  // Cek sesi saat komponen dimuat
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate('/login', { replace: true }); // Arahkan ke login jika tidak ada sesi
+      } else {
+        setAuthLoading(false); // Sesi ada, set authLoading false
+      }
+    };
+
+    checkSession();
+  }, [navigate]); // Tambahkan navigate sebagai dependency
+
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentSupplier, setCurrentSupplier] = useState<Supplier | null>(null);
   const [formState, setFormState] = useState({ name: '', contact: '', address: '' });
@@ -102,6 +122,12 @@ const SupplierListPage = () => {
     }
   };
 
+  // Tampilkan loading jika autentikasi atau data inventory sedang dimuat
+  if (authLoading || inventoryLoading) {
+      return <div>Loading...</div>; // Atau spinner, dll.
+  }
+
+
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-4">
@@ -112,52 +138,48 @@ const SupplierListPage = () => {
         </Button>
       </div>
 
-      {loading ? (
-          <p>Memuat data...</p>
-      ) : (
-        <Table>
-          <TableHeader>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Nama Suplier</TableHead>
+            <TableHead>Kontak</TableHead>
+            <TableHead>Alamat</TableHead>
+            <TableHead className="text-right">Aksi</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {suppliers.length === 0 ? (
             <TableRow>
-              <TableHead>Nama Suplier</TableHead>
-              <TableHead>Kontak</TableHead>
-              <TableHead>Alamat</TableHead>
-              <TableHead className="text-right">Aksi</TableHead>
+              <TableCell colSpan={4} className="text-center">Belum ada data suplier.</TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {suppliers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center">Belum ada data suplier.</TableCell>
+          ) : (
+            suppliers.map((supplier) => (
+              <TableRow key={supplier.id}>
+                <TableCell>{supplier.name}</TableCell>
+                <TableCell>{supplier.contact}</TableCell>
+                <TableCell>{supplier.address}</TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mr-2"
+                    onClick={() => openDialog(supplier)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => deleteSupplierHandler(supplier.id)} // Use the async handler
+                  >
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                  </Button>
+                </TableCell>
               </TableRow>
-            ) : (
-              suppliers.map((supplier) => (
-                <TableRow key={supplier.id}>
-                  <TableCell>{supplier.name}</TableCell>
-                  <TableCell>{supplier.contact}</TableCell>
-                  <TableCell>{supplier.address}</TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="mr-2"
-                      onClick={() => openDialog(supplier)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteSupplierHandler(supplier.id)} // Use the async handler
-                    >
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      )}
+            ))
+          )}
+        </TableBody>
+      </Table>
 
 
       {/* Add/Edit Supplier Dialog */}
