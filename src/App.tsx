@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"; // Hapus useNavigate yang tidak terpakai di sini
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import SupplierListPage from "./pages/SupplierList";
@@ -18,7 +18,6 @@ import React from "react";
 
 const queryClient = new QueryClient();
 
-// Komponen ProtectedRoute
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   const { session, isLoading } = useAuth();
 
@@ -37,16 +36,14 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      {/* Bungkus konten dengan React Fragment */}
-      <>
+      {/* Bungkus konten dengan div */}
+      <div>
         <Toaster />
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* Rute Login (tidak dilindungi) */}
             <Route path="/login" element={<Login />} />
 
-            {/* Rute yang dilindungi, dibungkus dengan ProtectedRoute */}
             <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
               <Route index element={<Index />} />
               <Route path="suppliers" element={<SupplierListPage />} />
@@ -57,11 +54,10 @@ const App = () => (
               <Route path="reports" element={<ReportsPage />} />
             </Route>
 
-            {/* Rute Not Found (tidak dilindungi) */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
-      </>
+      </div>
     </TooltipProvider>
   </QueryClientProvider>
 );
