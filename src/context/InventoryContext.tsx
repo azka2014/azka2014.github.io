@@ -59,6 +59,8 @@ type Action =
   | { type: 'UPDATE_ITEM'; payload: Item }
   | { type: 'DELETE_ITEM'; payload: string }
   | { type: 'ADD_INCOMING_TRANSACTION'; payload: IncomingTransaction }
+  | { type: 'UPDATE_INCOMING_TRANSACTION'; payload: IncomingTransaction } // Added update action
+  | { type: 'DELETE_INCOMING_TRANSACTION'; payload: string } // Added delete action
   | { type: 'ADD_OUTGOING_TRANSACTION'; payload: OutgoingTransaction };
 
 // Reducer function to handle state changes
@@ -121,6 +123,59 @@ const inventoryReducer = (state: InventoryState, action: Action): InventoryState
         incomingTransactions: [...state.incomingTransactions, transaction],
         items: updatedItems,
       };
+    }
+    case 'UPDATE_INCOMING_TRANSACTION': {
+        const updatedTransaction = action.payload;
+        const oldTransaction = state.incomingTransactions.find(tx => tx.id === updatedTransaction.id);
+
+        if (!oldTransaction) {
+            console.error("Transaction not found for update:", updatedTransaction.id);
+            return state; // Return current state if transaction not found
+        }
+
+        // Calculate stock difference
+        const quantityDifference = updatedTransaction.quantity - oldTransaction.quantity;
+
+        const updatedItems = state.items.map(item => {
+            // Adjust stock only for the item related to the transaction
+            if (item.id === updatedTransaction.itemId) {
+                 // Check if the item ID also changed (less common for incoming, but good practice)
+                 // If item ID changed, we'd need to adjust stock for *both* old and new items.
+                 // For simplicity, assuming item ID doesn't change during edit for now.
+                return { ...item, stock: item.stock + quantityDifference };
+            }
+            return item;
+        });
+
+        return {
+            ...state,
+            incomingTransactions: state.incomingTransactions.map(tx =>
+                tx.id === updatedTransaction.id ? updatedTransaction : tx
+            ),
+            items: updatedItems,
+        };
+    }
+    case 'DELETE_INCOMING_TRANSACTION': {
+        const transactionIdToDelete = action.payload;
+        const transactionToDelete = state.incomingTransactions.find(tx => tx.id === transactionIdToDelete);
+
+        if (!transactionToDelete) {
+            console.error("Transaction not found for deletion:", transactionIdToDelete);
+            return state; // Return current state if transaction not found
+        }
+
+        // Decrease stock for the item related to the deleted transaction
+        const updatedItems = state.items.map(item =>
+            item.id === transactionToDelete.itemId
+                ? { ...item, stock: item.stock - transactionToDelete.quantity }
+                : item
+        );
+
+        return {
+            ...state,
+            incomingTransactions: state.incomingTransactions.filter(tx => tx.id !== transactionIdToDelete),
+            items: updatedItems,
+        };
     }
     case 'ADD_OUTGOING_TRANSACTION': {
       const transaction = action.payload;

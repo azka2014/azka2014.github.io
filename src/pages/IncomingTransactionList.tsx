@@ -20,14 +20,13 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PlusCircle } from 'lucide-react';
+import { Pencil, Trash2, PlusCircle, CalendarIcon } from 'lucide-react'; // Import Pencil, Trash2, CalendarIcon
 import { useToast } from '@/components/ui/use-toast';
 import { useInventory } from '@/context/InventoryContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
-import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface IncomingTransaction {
@@ -41,6 +40,7 @@ interface IncomingTransaction {
 const IncomingTransactionListPage = () => {
   const { incomingTransactions, items, suppliers, dispatch, getItemById, getSupplierById } = useInventory();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [currentTransaction, setCurrentTransaction] = useState<IncomingTransaction | null>(null); // State to hold transaction being edited
   const [formState, setFormState] = useState({
     date: new Date(),
     itemId: '',
@@ -67,27 +67,46 @@ const IncomingTransactionListPage = () => {
     }
   };
 
-  // Open dialog for adding
-  const openDialog = () => {
-    setFormState({
-      date: new Date(),
-      itemId: '',
-      supplierId: '',
-      quantity: '',
-    });
+  // Open dialog for adding or editing
+  const openDialog = (transaction?: IncomingTransaction) => {
+    if (transaction) {
+      setCurrentTransaction(transaction);
+      setFormState({
+        date: new Date(transaction.date), // Convert string date back to Date object
+        itemId: transaction.itemId,
+        supplierId: transaction.supplierId,
+        quantity: transaction.quantity.toString(), // Convert number back to string for input
+      });
+    } else {
+      setCurrentTransaction(null);
+      setFormState({
+        date: new Date(),
+        itemId: '',
+        supplierId: '',
+        quantity: '',
+      });
+    }
     setIsDialogOpen(true);
   };
 
   // Close dialog
   const closeDialog = () => {
     setIsDialogOpen(false);
+    setCurrentTransaction(null); // Reset current transaction on close
+    setFormState({ // Reset form state
+      date: new Date(),
+      itemId: '',
+      supplierId: '',
+      quantity: '',
+    });
   };
 
-  // Save incoming transaction
+  // Save incoming transaction (Add or Edit)
   const saveTransaction = () => {
     const { date, itemId, supplierId, quantity } = formState;
+    const quantityNumber = Number(quantity);
 
-    if (!date || !itemId || !supplierId || !quantity || Number(quantity) <= 0) {
+    if (!date || !itemId || !supplierId || !quantity || quantityNumber <= 0) {
       toast({
         title: "Gagal",
         description: "Semua field harus diisi dengan benar.",
@@ -96,29 +115,56 @@ const IncomingTransactionListPage = () => {
       return;
     }
 
-    const newTransaction: IncomingTransaction = {
-      id: Date.now().toString(), // Simple unique ID
-      date: date.toISOString().split('T')[0], // Format date as YYYY-MM-DD
-      itemId,
-      supplierId,
-      quantity: Number(quantity),
-    };
-
-    dispatch({ type: 'ADD_INCOMING_TRANSACTION', payload: newTransaction });
-
-    toast({
-      title: "Berhasil",
-      description: "Transaksi barang masuk berhasil ditambahkan.",
-    });
-
+    if (currentTransaction) {
+      // Edit existing transaction
+      const updatedTransaction: IncomingTransaction = {
+        ...currentTransaction, // Keep the original ID
+        date: date.toISOString().split('T')[0],
+        itemId,
+        supplierId,
+        quantity: quantityNumber,
+      };
+      dispatch({ type: 'UPDATE_INCOMING_TRANSACTION', payload: updatedTransaction });
+      toast({
+        title: "Berhasil",
+        description: "Transaksi barang masuk berhasil diupdate.",
+      });
+    } else {
+      // Add new transaction
+      const newTransaction: IncomingTransaction = {
+        id: Date.now().toString(), // Simple unique ID
+        date: date.toISOString().split('T')[0], // Format date as YYYY-MM-DD
+        itemId,
+        supplierId,
+        quantity: quantityNumber,
+      };
+      dispatch({ type: 'ADD_INCOMING_TRANSACTION', payload: newTransaction });
+      toast({
+        title: "Berhasil",
+        description: "Transaksi barang masuk baru berhasil ditambahkan.",
+      });
+    }
     closeDialog();
   };
+
+  // Delete incoming transaction
+  const deleteTransaction = (id: string) => {
+    // Optional: Add a confirmation dialog here before dispatching delete
+    if (window.confirm("Apakah Anda yakin ingin menghapus transaksi ini?")) {
+       dispatch({ type: 'DELETE_INCOMING_TRANSACTION', payload: id });
+       toast({
+         title: "Berhasil",
+         description: "Transaksi barang masuk berhasil dihapus.",
+       });
+    }
+  };
+
 
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Daftar Barang Masuk</h1>
-        <Button onClick={openDialog}>
+        <Button onClick={() => openDialog()}> {/* Call openDialog without argument for adding */}
           <PlusCircle className="mr-2 h-4 w-4" />
           Tambah Barang Masuk
         </Button>
@@ -131,13 +177,13 @@ const IncomingTransactionListPage = () => {
             <TableHead>Nama Barang</TableHead>
             <TableHead>Suplier</TableHead>
             <TableHead>Kuantitas</TableHead>
-            {/* <TableHead className="text-right">Aksi</TableHead> // Removed Aksi for simplicity */}
+            <TableHead className="text-right">Aksi</TableHead> {/* Added Aksi header */}
           </TableRow>
         </TableHeader>
         <TableBody>
           {incomingTransactions.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={4} className="text-center">Belum ada data barang masuk.</TableCell>
+              <TableCell colSpan={5} className="text-center">Belum ada data barang masuk.</TableCell> {/* Updated colspan */}
             </TableRow>
           ) : (
             incomingTransactions.map((transaction) => {
@@ -149,9 +195,23 @@ const IncomingTransactionListPage = () => {
                   <TableCell>{item ? item.name : 'Barang Tidak Ditemukan'}</TableCell>
                   <TableCell>{supplier ? supplier.name : 'Suplier Tidak Ditemukan'}</TableCell>
                   <TableCell>{transaction.quantity}</TableCell>
-                  {/* <TableCell className="text-right">
-                    {/* Add edit/delete buttons if needed later }
-                  </TableCell> */}
+                  <TableCell className="text-right"> {/* Added Aksi cell */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mr-2"
+                      onClick={() => openDialog(transaction)} // Pass transaction for editing
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteTransaction(transaction.id)} // Call delete function
+                    >
+                      <Trash2 className="h-4 w-4 text-red-500" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               );
             })
@@ -159,13 +219,13 @@ const IncomingTransactionListPage = () => {
         </TableBody>
       </Table>
 
-      {/* Add Incoming Transaction Dialog */}
+      {/* Add/Edit Incoming Transaction Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Tambah Barang Masuk</DialogTitle>
+            <DialogTitle>{currentTransaction ? 'Edit Transaksi Barang Masuk' : 'Tambah Barang Masuk'}</DialogTitle> {/* Dynamic title */}
             <DialogDescription>
-              Tambahkan transaksi barang masuk baru.
+              {currentTransaction ? 'Edit data transaksi barang masuk.' : 'Tambahkan transaksi barang masuk baru.'} {/* Dynamic description */}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -242,7 +302,7 @@ const IncomingTransactionListPage = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={closeDialog}>Batal</Button>
-            <Button onClick={saveTransaction}>Tambah Transaksi</Button>
+            <Button onClick={saveTransaction}>{currentTransaction ? 'Simpan Perubahan' : 'Tambah Transaksi'}</Button> {/* Dynamic button text */}
           </DialogFooter>
         </DialogContent>
       </Dialog>
