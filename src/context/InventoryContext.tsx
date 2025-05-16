@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, useReducer } from 'react';
 import { useToast } from '@/components/ui/use-toast';
-import { createClient } from '@/integrations/supabase/client'; // Import Supabase client
+// Perbaiki import: import instance supabase yang sudah diekspor
+import { supabase } from '@/integrations/supabase/client';
 
 // Define types for your data (should match Supabase table structure)
 interface Supplier {
@@ -193,7 +194,10 @@ const InventoryContext = createContext<InventoryContextProps | undefined>(undefi
 export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(inventoryReducer, initialState);
   const { toast } = useToast();
-  const supabase = createClient(); // Initialize Supabase client
+  // Gunakan instance supabase yang sudah diekspor
+  // const supabase = createClient(); // Hapus baris ini
+  // Gunakan instance supabase yang diimpor
+  // const supabase = importedSupabase; // Ini hanya contoh, gunakan nama import yang benar
 
   // --- Data Fetching from Supabase ---
   const fetchInventory = async () => {
