@@ -20,6 +20,8 @@ const Index = () => {
 
       {/* Main content area */}
       <div className="flex-1 p-4 overflow-y-auto">
+        {/* Added title here */}
+        <h1 className="text-4xl font-extrabold text-center mb-4">RSUD KABUPATEN KARO</h1>
         <h1 className="text-3xl font-bold text-center mb-8">Sistem Manajemen Persediaan</h1>
 
         {/* Transaction Summary Chart */}
