@@ -31,20 +31,20 @@ const OutgoingReportsPage = () => {
 
   const navigate = useNavigate();
 
-  // State untuk filter (nilai yang dipilih di UI)
+  // State untuk filter
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
   // State untuk memicu pemfilteran saat tombol Proses diklik
-  const [applyFiltersTrigger, setApplyFiltersTrigger] = useState(0); // Added state for trigger
+  const [applyFiltersTrigger, setApplyFiltersTrigger] = useState(0);
 
   const handleBackToDashboard = () => {
     navigate('/');
   };
 
   // Handler untuk tombol Proses
-  const handleProcessReport = () => { // Added handler for the button
+  const handleProcessReport = () => {
     setApplyFiltersTrigger(prev => prev + 1); // Increment state to trigger useMemo
   };
 
@@ -69,7 +69,7 @@ const OutgoingReportsPage = () => {
 
     console.log("Filtered Outgoing Transactions count:", filtered.length);
     return filtered;
-  }, [outgoingTransactions, selectedItemId, selectedDepartmentId, selectedDate, applyFiltersTrigger]); // Added applyFiltersTrigger to dependencies
+  }, [outgoingTransactions, selectedItemId, selectedDepartmentId, selectedDate, applyFiltersTrigger]);
 
 
   return (
@@ -82,7 +82,7 @@ const OutgoingReportsPage = () => {
           <CardTitle>Filter Laporan Barang Keluar</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"> {/* Added mb-4 for spacing before button */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             {/* Filter Barang */}
             <div>
               <Label htmlFor="filterItem" className="mb-1 block">Nama Barang</Label>
@@ -143,8 +143,8 @@ const OutgoingReportsPage = () => {
             </div>
           </div>
            {/* Proses Button */}
-           <div className="flex justify-end"> {/* Added button container */}
-              <Button onClick={handleProcessReport}>Proses Laporan</Button> {/* Added the button */}
+           <div className="flex justify-end">
+              <Button onClick={handleProcessReport}>Proses Laporan</Button>
            </div>
         </CardContent>
       </Card>
@@ -167,13 +167,13 @@ const OutgoingReportsPage = () => {
                     <TableHead>Nama Barang</TableHead>
                     <TableHead>Departemen</TableHead>
                     <TableHead>Kuantitas</TableHead>
-                    <TableHead>Satuan</TableHead> {/* Added Satuan header */}
+                    <TableHead>Satuan</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredOutgoingTransactions.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center">Tidak ada data barang keluar sesuai filter.</TableCell> {/* Updated colspan */}
+                      <TableCell colSpan={5} className="text-center">Tidak ada data barang keluar sesuai filter.</TableCell>
                     </TableRow>
                   ) : (
                     filteredOutgoingTransactions.map((transaction) => {
@@ -185,7 +185,7 @@ const OutgoingReportsPage = () => {
                           <TableCell>{item ? item.name : 'Barang Tidak Ditemukan'}</TableCell>
                           <TableCell>{department ? department.name : 'Departemen Tidak Ditemukan'}</TableCell>
                           <TableCell>{transaction.quantity}</TableCell>
-                          <TableCell>{item ? item.unit : '-'}</TableCell> {/* Display item unit */}
+                          <TableCell>{item ? item.unit : '-'}</TableCell>
                         </TableRow>
                       );
                     })

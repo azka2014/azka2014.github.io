@@ -168,13 +168,13 @@ const IncomingReportsPage = () => {
                     <TableHead>Nama Barang</TableHead>
                     <TableHead>Suplier</TableHead>
                     <TableHead>Kuantitas</TableHead>
-                    <TableHead>Satuan</TableHead> {/* Added Satuan header */}
+                    <TableHead>Satuan</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredIncomingTransactions.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center">Tidak ada data barang masuk sesuai filter.</TableCell> {/* Updated colspan */}
+                      <TableCell colSpan={5} className="text-center">Tidak ada data barang masuk sesuai filter.</TableCell>
                     </TableRow>
                   ) : (
                     filteredIncomingTransactions.map((transaction) => {
@@ -186,7 +186,7 @@ const IncomingReportsPage = () => {
                           <TableCell>{item ? item.name : 'Barang Tidak Ditemukan'}</TableCell>
                           <TableCell>{supplier ? supplier.name : 'Suplier Tidak Ditemukan'}</TableCell>
                           <TableCell>{transaction.quantity}</TableCell>
-                          <TableCell>{item ? item.unit : '-'}</TableCell> {/* Display item unit */}
+                          <TableCell>{item ? item.unit : '-'}</TableCell>
                         </TableRow>
                       );
                     })
