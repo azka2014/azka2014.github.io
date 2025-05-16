@@ -1,4 +1,3 @@
-menjadi value={null} untuk opsi 'Semua'.">
 import React, { useState, useMemo } from 'react'; // Import useState and useMemo
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -76,7 +75,7 @@ const ReportsPage = () => {
 
      if (selectedDate) {
       // Filter transaksi pada atau setelah tanggal yang dipilih
-      const filterDateString = format(selectedDate, 'yyyy-MM-dd'); // Corrected format
+      const filterDateString = format(selectedDate, 'yyyy-MM-dd');
       filtered = filtered.filter(tx => tx.date >= filterDateString);
     }
 
