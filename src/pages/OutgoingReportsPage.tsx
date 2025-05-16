@@ -31,10 +31,12 @@ const OutgoingReportsPage = () => {
 
   const navigate = useNavigate();
 
-  // State untuk filter
+  // State untuk filter (nilai yang dipilih di UI)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  // Mengganti selectedDate dengan startDate dan endDate
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
 
   // State untuk memicu pemfilteran saat tombol Proses diklik
   const [applyFiltersTrigger, setApplyFiltersTrigger] = useState(0);
@@ -50,7 +52,6 @@ const OutgoingReportsPage = () => {
 
   // Logika pemfilteran menggunakan useMemo, bergantung pada applyFiltersTrigger
   const filteredOutgoingTransactions = useMemo(() => {
-    // Use applyFiltersTrigger in the dependency array so useMemo runs when the button is clicked
     console.log("Applying filters for Outgoing Reports...");
     let filtered = outgoingTransactions;
 
@@ -62,14 +63,20 @@ const OutgoingReportsPage = () => {
       filtered = filtered.filter(tx => tx.department_id === selectedDepartmentId);
     }
 
-     if (selectedDate) {
-      const filterDateString = format(selectedDate, 'yyyy-MM-dd');
-      filtered = filtered.filter(tx => tx.date >= filterDateString);
+    // Filter berdasarkan rentang tanggal
+     if (startDate) {
+      const startFilterDateString = format(startDate, 'yyyy-MM-dd');
+      filtered = filtered.filter(tx => tx.date >= startFilterDateString);
     }
+    if (endDate) {
+      const endFilterDateString = format(endDate, 'yyyy-MM-dd');
+      filtered = filtered.filter(tx => tx.date <= endFilterDateString);
+    }
+
 
     console.log("Filtered Outgoing Transactions count:", filtered.length);
     return filtered;
-  }, [outgoingTransactions, selectedItemId, selectedDepartmentId, selectedDate, applyFiltersTrigger]);
+  }, [outgoingTransactions, selectedItemId, selectedDepartmentId, startDate, endDate, applyFiltersTrigger]); // Update dependencies
 
 
   return (
@@ -115,27 +122,54 @@ const OutgoingReportsPage = () => {
               </Select>
             </div>
 
-            {/* Filter Tanggal */}
+            {/* Filter Tanggal Awal */}
             <div>
-              <Label htmlFor="filterDate" className="mb-1 block">Tanggal (Pada atau Setelah)</Label>
+              <Label htmlFor="filterStartDate" className="mb-1 block">Tanggal Awal</Label>
                <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant={"outline"}
                     className={cn(
                       "w-full justify-start text-left font-normal",
-                      !selectedDate && "text-muted-foreground"
+                      !startDate && "text-muted-foreground"
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {selectedDate ? format(selectedDate, "PPP") : <span>Pilih Tanggal</span>}
+                    {startDate ? format(startDate, "PPP") : <span>Pilih Tanggal Awal</span>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
                   <Calendar
                     mode="single"
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
+                    selected={startDate}
+                    onSelect={setStartDate} // Set startDate
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+             {/* Filter Tanggal Akhir */}
+            <div>
+              <Label htmlFor="filterEndDate" className="mb-1 block">Tanggal Akhir</Label>
+               <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !endDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {endDate ? format(endDate, "PPP") : <span>Pilih Tanggal Akhir</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={endDate}
+                    onSelect={setEndDate} // Set endDate
                     initialFocus
                   />
                 </PopoverContent>
