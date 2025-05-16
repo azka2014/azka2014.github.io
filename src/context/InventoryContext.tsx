@@ -342,12 +342,14 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const addItem = async (item: Omit<Item, 'id' | 'stock'>) => {
-     // When adding an item, stock starts at 0 in the database
-    const { data, error } = await supabase.from('items').insert([{ name: item.name, unit: item.unit, stock: 0 }]).select().single();
+     // Rely on the database default for stock (which is 0)
+    const { data, error } = await supabase.from('items').insert([{ name: item.name, unit: item.unit }]).select().single();
      if (error) {
       console.error("Error adding item:", error);
       toast({ title: "Gagal", description: `Gagal menambahkan barang: ${error.message}`, variant: "destructive" });
     } else if (data) {
+      // The 'data' returned by select().single() after insert should be the newly inserted row
+      // This row should include the generated 'id' and the initial 'stock' (0)
       dispatch({ type: 'ADD_ITEM', payload: data });
       toast({ title: "Berhasil", description: "Barang baru berhasil ditambahkan." });
     }
@@ -466,7 +468,7 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Helper functions to get data by ID (operate on local state)
   const getItemById = (id: string) => state.items.find(item => item.id === id);
   const getSupplierById = (id: string) => state.suppliers.find(sup => sup.id === id);
-  const getDepartmentById = (id: string) => state.departments.find(dep => dep.id === id); // Fix: should use id === dep.id
+  const getDepartmentById = (id: string) => state.departments.find(dep => dep.id === id);
 
 
   return (
