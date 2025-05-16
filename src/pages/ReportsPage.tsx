@@ -1,3 +1,4 @@
+menjadi value={null} untuk opsi 'Semua'.">
 import React, { useState, useMemo } from 'react'; // Import useState and useMemo
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -75,7 +76,7 @@ const ReportsPage = () => {
 
      if (selectedDate) {
       // Filter transaksi pada atau setelah tanggal yang dipilih
-      const filterDateString = format(selectedDate, 'yyyy-MM-MM'); // Fix: Should be 'yyyy-MM-dd'
+      const filterDateString = format(selectedDate, 'yyyy-MM-dd'); // Corrected format
       filtered = filtered.filter(tx => tx.date >= filterDateString);
     }
 
@@ -97,12 +98,13 @@ const ReportsPage = () => {
             {/* Filter Barang */}
             <div>
               <Label htmlFor="filterItem" className="mb-1 block">Nama Barang</Label>
-              <Select onValueChange={(value) => setSelectedItemId(value === '' ? null : value)} value={selectedItemId || ''}>
+              {/* Mengubah value="" menjadi value={null} dan menyederhanakan onValueChange */}
+              <Select onValueChange={(value) => setSelectedItemId(value)} value={selectedItemId || ''}>
                 <SelectTrigger id="filterItem">
                   <SelectValue placeholder="Semua Barang" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Semua Barang</SelectItem> {/* Option to show all */}
+                  <SelectItem value={null}>Semua Barang</SelectItem> {/* Menggunakan value={null} */}
                   {items.map(item => (
                     <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>
                   ))}
@@ -113,12 +115,13 @@ const ReportsPage = () => {
             {/* Filter Departemen (hanya relevan untuk Barang Keluar) */}
              <div>
               <Label htmlFor="filterDepartment" className="mb-1 block">Departemen</Label>
-              <Select onValueChange={(value) => setSelectedDepartmentId(value === '' ? null : value)} value={selectedDepartmentId || ''}>
+               {/* Mengubah value="" menjadi value={null} dan menyederhanakan onValueChange */}
+              <Select onValueChange={(value) => setSelectedDepartmentId(value)} value={selectedDepartmentId || ''}>
                 <SelectTrigger id="filterDepartment">
                   <SelectValue placeholder="Semua Departemen" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Semua Departemen</SelectItem> {/* Option to show all */}
+                  <SelectItem value={null}>Semua Departemen</SelectItem> {/* Menggunakan value={null} */}
                   {departments.map(department => (
                     <SelectItem key={department.id} value={department.id}>{department.name}</SelectItem>
                   ))}
