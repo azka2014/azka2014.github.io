@@ -36,29 +36,28 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      {/* Bungkus konten dengan div */}
-      <div>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<Login />} />
+      {/* TooltipProvider sekarang hanya memiliki BrowserRouter sebagai anak langsung */}
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
 
-            <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-              <Route index element={<Index />} />
-              <Route path="suppliers" element={<SupplierListPage />} />
-              <Route path="departments" element={<DepartmentListPage />} />
-              <Route path="items" element={<ItemListPage />} />
-              <Route path="incoming" element={<IncomingTransactionListPage />} />
-              <Route path="outgoing" element={<OutgoingTransactionListPage />} />
-              <Route path="reports" element={<ReportsPage />} />
-            </Route>
+          <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+            <Route index element={<Index />} />
+            <Route path="suppliers" element={<SupplierListPage />} />
+            <Route path="departments" element={<DepartmentListPage />} />
+            <Route path="items" element={<ItemListPage />} />
+            <Route path="incoming" element={<IncomingTransactionListPage />} />
+            <Route path="outgoing" element={<OutgoingTransactionListPage />} />
+            <Route path="reports" element={<ReportsPage />} />
+          </Route>
 
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </div>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
     </TooltipProvider>
+    {/* Toaster dan Sonner dipindahkan ke luar TooltipProvider */}
+    <Toaster />
+    <Sonner />
   </QueryClientProvider>
 );
 
