@@ -159,6 +159,9 @@ const IncomingTransactionListPage = () => {
     }
   };
 
+  // Get the selected item to display its stock
+  const selectedItem = getItemById(formState.itemId);
+
 
   return (
     <div className="p-4">
@@ -260,16 +263,24 @@ const IncomingTransactionListPage = () => {
               <Label htmlFor="itemId" className="text-right">
                 Barang
               </Label>
-              <Select onValueChange={(value) => handleSelectChange('itemId', value)} value={formState.itemId}>
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Pilih Barang" />
-                </SelectTrigger>
-                <SelectContent>
-                  {items.map(item => (
-                    <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="col-span-3 flex items-center gap-2"> {/* Use flex to align select and stock */}
+                <Select onValueChange={(value) => handleSelectChange('itemId', value)} value={formState.itemId}>
+                  <SelectTrigger className="flex-1"> {/* Allow select to take available space */}
+                    <SelectValue placeholder="Pilih Barang" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {items.map(item => (
+                      <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {/* Display current stock */}
+                {selectedItem && (
+                  <span className="text-sm text-muted-foreground">
+                    Stok: {selectedItem.stock}
+                  </span>
+                )}
+              </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="supplierId" className="text-right">
