@@ -20,31 +20,59 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Pencil, Trash2, PlusCircle, CalendarIcon } from 'lucide-react'; // Import Pencil, Trash2, CalendarIcon
+import { Pencil, Trash2, PlusCircle, CalendarIcon } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { useInventory } from '@/context/InventoryContext';
+import { useInventory } from '@/context/InventoryContext'; // Import the context hook
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
+// Define types for your data (should match Supabase table structure and context)
 interface IncomingTransaction {
   id: string;
-  date: string;
-  itemId: string;
-  supplierId: string;
+  date: string; // YYYY-MM-DD format from Supabase DATE type
+  item_id: string; // Use item_id to match Supabase column name
+  supplier_id: string; // Use supplier_id to match Supabase column name
   quantity: number;
 }
 
+interface Item {
+  id: string;
+  name: string;
+  unit: string;
+  stock: number;
+}
+
+interface Supplier {
+  id: string;
+  name: string;
+  contact: string | null;
+  address: string | null;
+}
+
+
 const IncomingTransactionListPage = () => {
-  const { incomingTransactions, items, suppliers, dispatch, getItemById, getSupplierById } = useInventory();
+  // Gunakan fungsi CRUD Supabase dan data dari useInventory
+  const {
+    incomingTransactions,
+    items,
+    suppliers,
+    addIncomingTransaction,
+    updateIncomingTransaction,
+    deleteIncomingTransaction,
+    getItemById, // Helper from context
+    getSupplierById, // Helper from context
+    loading // Loading state from context
+  } = useInventory();
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentTransaction, setCurrentTransaction] = useState<IncomingTransaction | null>(null); // State to hold transaction being edited
   const [formState, setFormState] = useState({
     date: new Date(),
-    itemId: '',
-    supplierId: '',
+    item_id: '', // Use item_id to match context/DB
+    supplier_id: '', // Use supplier_id to match context/DB
     quantity: '',
   });
   const { toast } = useToast();
@@ -56,7 +84,7 @@ const IncomingTransactionListPage = () => {
   };
 
   // Handle select changes
-  const handleSelectChange = (id: string, value: string) => {
+  const handleSelectChange = (id: 'item_id' | 'supplier_id', value: string) => { // Specify possible IDs
     setFormState((prev) => ({ ...prev, [id]: value }));
   };
 
@@ -73,16 +101,16 @@ const IncomingTransactionListPage = () => {
       setCurrentTransaction(transaction);
       setFormState({
         date: new Date(transaction.date), // Convert string date back to Date object
-        itemId: transaction.itemId,
-        supplierId: transaction.supplierId,
+        item_id: transaction.item_id, // Use item_id
+        supplier_id: transaction.supplier_id, // Use supplier_id
         quantity: transaction.quantity.toString(), // Convert number back to string for input
       });
     } else {
       setCurrentTransaction(null);
       setFormState({
         date: new Date(),
-        itemId: '',
-        supplierId: '',
+        item_id: '',
+        supplier_id: '',
         quantity: '',
       });
     }
@@ -95,18 +123,18 @@ const IncomingTransactionListPage = () => {
     setCurrentTransaction(null); // Reset current transaction on close
     setFormState({ // Reset form state
       date: new Date(),
-      itemId: '',
-      supplierId: '',
+      item_id: '',
+      supplier_id: '',
       quantity: '',
     });
   };
 
   // Save incoming transaction (Add or Edit)
-  const saveTransaction = () => {
-    const { date, itemId, supplierId, quantity } = formState;
+  const saveTransaction = async () => { // Make async
+    const { date, item_id, supplier_id, quantity } = formState; // Use item_id, supplier_id
     const quantityNumber = Number(quantity);
 
-    if (!date || !itemId || !supplierId || !quantity || quantityNumber <= 0) {
+    if (!date || !item_id || !supplier_id || !quantity || quantityNumber <= 0) {
       toast({
         title: "Gagal",
         description: "Semua field harus diisi dengan benar.",
@@ -119,49 +147,35 @@ const IncomingTransactionListPage = () => {
       // Edit existing transaction
       const updatedTransaction: IncomingTransaction = {
         ...currentTransaction, // Keep the original ID
-        date: date.toISOString().split('T')[0],
-        itemId,
-        supplierId,
+        date: format(date, 'yyyy-MM-dd'), // Format date as YYYY-MM-DD for Supabase
+        item_id,
+        supplier_id,
         quantity: quantityNumber,
       };
-      dispatch({ type: 'UPDATE_INCOMING_TRANSACTION', payload: updatedTransaction });
-      toast({
-        title: "Berhasil",
-        description: "Transaksi barang masuk berhasil diupdate.",
-      });
+      await updateIncomingTransaction(updatedTransaction); // Call Supabase function
     } else {
       // Add new transaction
-      const newTransaction: IncomingTransaction = {
-        id: Date.now().toString(), // Simple unique ID
-        date: date.toISOString().split('T')[0], // Format date as YYYY-MM-DD
-        itemId,
-        supplierId,
+      const newTransaction = { // Omit id for add
+        date: format(date, 'yyyy-MM-dd'), // Format date as YYYY-MM-DD for Supabase
+        item_id,
+        supplier_id,
         quantity: quantityNumber,
       };
-      dispatch({ type: 'ADD_INCOMING_TRANSACTION', payload: newTransaction });
-      toast({
-        title: "Berhasil",
-        description: "Transaksi barang masuk baru berhasil ditambahkan.",
-      });
+      await addIncomingTransaction(newTransaction); // Call Supabase function
     }
     closeDialog();
   };
 
   // Delete incoming transaction
-  const deleteTransaction = (id: string) => {
+  const deleteTransactionHandler = async (id: string) => { // Make async
     // Optional: Add a confirmation dialog here before dispatching delete
     if (window.confirm("Apakah Anda yakin ingin menghapus transaksi ini?")) {
-       dispatch({ type: 'DELETE_INCOMING_TRANSACTION', payload: id });
-       toast({
-         title: "Berhasil",
-         description: "Transaksi barang masuk berhasil dihapus.",
-       });
+       await deleteIncomingTransaction(id); // Call Supabase function
     }
   };
 
   // Get the selected item to display its stock
-  const selectedItem = getItemById(formState.itemId);
-
+  const selectedItem = getItemById(formState.item_id); // Use item_id
 
   return (
     <div className="p-4">
@@ -173,54 +187,60 @@ const IncomingTransactionListPage = () => {
         </Button>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Tanggal</TableHead>
-            <TableHead>Nama Barang</TableHead>
-            <TableHead>Suplier</TableHead>
-            <TableHead>Kuantitas</TableHead>
-            <TableHead className="text-right">Aksi</TableHead> {/* Added Aksi header */}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {incomingTransactions.length === 0 ? (
+      {loading ? (
+          <p>Memuat data...</p>
+      ) : (
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={5} className="text-center">Belum ada data barang masuk.</TableCell> {/* Updated colspan */}
+              <TableHead>Tanggal</TableHead>
+              <TableHead>Nama Barang</TableHead>
+              <TableHead>Suplier</TableHead>
+              <TableHead>Kuantitas</TableHead>
+              <TableHead className="text-right">Aksi</TableHead> {/* Added Aksi header */}
             </TableRow>
-          ) : (
-            incomingTransactions.map((transaction) => {
-              const item = getItemById(transaction.itemId);
-              const supplier = getSupplierById(transaction.supplierId);
-              return (
-                <TableRow key={transaction.id}>
-                  <TableCell>{transaction.date}</TableCell>
-                  <TableCell>{item ? item.name : 'Barang Tidak Ditemukan'}</TableCell>
-                  <TableCell>{supplier ? supplier.name : 'Suplier Tidak Ditemukan'}</TableCell>
-                  <TableCell>{transaction.quantity}</TableCell>
-                  <TableCell className="text-right"> {/* Added Aksi cell */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="mr-2"
-                      onClick={() => openDialog(transaction)} // Pass transaction for editing
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteTransaction(transaction.id)} // Call delete function
-                    >
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              );
-            })
-          )}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {incomingTransactions.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center">Belum ada data barang masuk.</TableCell> {/* Updated colspan */}
+              </TableRow>
+            ) : (
+              incomingTransactions.map((transaction) => {
+                // Use item_id and supplier_id from transaction object
+                const item = getItemById(transaction.item_id);
+                const supplier = getSupplierById(transaction.supplier_id);
+                return (
+                  <TableRow key={transaction.id}>
+                    <TableCell>{transaction.date}</TableCell>
+                    <TableCell>{item ? item.name : 'Barang Tidak Ditemukan'}</TableCell>
+                    <TableCell>{supplier ? supplier.name : 'Suplier Tidak Ditemukan'}</TableCell>
+                    <TableCell>{transaction.quantity}</TableCell>
+                    <TableCell className="text-right"> {/* Added Aksi cell */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mr-2"
+                        onClick={() => openDialog(transaction)} // Pass transaction for editing
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteTransactionHandler(transaction.id)} // Call delete function
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      )}
+
 
       {/* Add/Edit Incoming Transaction Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -260,11 +280,11 @@ const IncomingTransactionListPage = () => {
               </Popover>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="itemId" className="text-right">
+              <Label htmlFor="item_id" className="text-right"> {/* Use item_id */}
                 Barang
               </Label>
               <div className="col-span-3 flex items-center gap-2"> {/* Use flex to align select and stock */}
-                <Select onValueChange={(value) => handleSelectChange('itemId', value)} value={formState.itemId}>
+                <Select onValueChange={(value) => handleSelectChange('item_id', value)} value={formState.item_id}> {/* Use item_id */}
                   <SelectTrigger className="flex-1"> {/* Allow select to take available space */}
                     <SelectValue placeholder="Pilih Barang" />
                   </SelectTrigger>
@@ -283,10 +303,10 @@ const IncomingTransactionListPage = () => {
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="supplierId" className="text-right">
+              <Label htmlFor="supplier_id" className="text-right"> {/* Use supplier_id */}
                 Suplier
               </Label>
-              <Select onValueChange={(value) => handleSelectChange('supplierId', value)} value={formState.supplierId}>
+              <Select onValueChange={(value) => handleSelectChange('supplier_id', value)} value={formState.supplier_id}> {/* Use supplier_id */}
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Pilih Suplier" />
                 </SelectTrigger>
