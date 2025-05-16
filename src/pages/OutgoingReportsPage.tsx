@@ -31,17 +31,27 @@ const OutgoingReportsPage = () => {
 
   const navigate = useNavigate();
 
-  // State untuk filter
+  // State untuk filter (nilai yang dipilih di UI)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+
+  // State untuk memicu pemfilteran saat tombol Proses diklik
+  const [applyFiltersTrigger, setApplyFiltersTrigger] = useState(0); // Added state for trigger
 
   const handleBackToDashboard = () => {
     navigate('/');
   };
 
-  // Logika pemfilteran menggunakan useMemo
+  // Handler untuk tombol Proses
+  const handleProcessReport = () => { // Added handler for the button
+    setApplyFiltersTrigger(prev => prev + 1); // Increment state to trigger useMemo
+  };
+
+  // Logika pemfilteran menggunakan useMemo, bergantung pada applyFiltersTrigger
   const filteredOutgoingTransactions = useMemo(() => {
+    // Use applyFiltersTrigger in the dependency array so useMemo runs when the button is clicked
+    console.log("Applying filters for Outgoing Reports...");
     let filtered = outgoingTransactions;
 
     if (selectedItemId) {
@@ -57,8 +67,9 @@ const OutgoingReportsPage = () => {
       filtered = filtered.filter(tx => tx.date >= filterDateString);
     }
 
+    console.log("Filtered Outgoing Transactions count:", filtered.length);
     return filtered;
-  }, [outgoingTransactions, selectedItemId, selectedDepartmentId, selectedDate]);
+  }, [outgoingTransactions, selectedItemId, selectedDepartmentId, selectedDate, applyFiltersTrigger]); // Added applyFiltersTrigger to dependencies
 
 
   return (
@@ -71,7 +82,7 @@ const OutgoingReportsPage = () => {
           <CardTitle>Filter Laporan Barang Keluar</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"> {/* Added mb-4 for spacing before button */}
             {/* Filter Barang */}
             <div>
               <Label htmlFor="filterItem" className="mb-1 block">Nama Barang</Label>
@@ -131,6 +142,10 @@ const OutgoingReportsPage = () => {
               </Popover>
             </div>
           </div>
+           {/* Proses Button */}
+           <div className="flex justify-end"> {/* Added button container */}
+              <Button onClick={handleProcessReport}>Proses Laporan</Button> {/* Added the button */}
+           </div>
         </CardContent>
       </Card>
 
