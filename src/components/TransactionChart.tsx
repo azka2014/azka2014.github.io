@@ -24,7 +24,8 @@ const TransactionChart: React.FC<TransactionChartProps> = ({ incomingTotal, outg
         <CardTitle>Ringkasan Transaksi</CardTitle>
       </CardHeader>
       <CardContent>
-        <div style={{ width: '100%', height: 300 }}>
+        {/* Mengurangi tinggi div pembungkus grafik */}
+        <div style={{ width: '100%', height: 250 }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={data}
