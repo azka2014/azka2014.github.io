@@ -35,10 +35,12 @@ interface Supplier {
 const SupplierListPage = () => {
   // Gunakan fungsi CRUD Supabase dari useInventory
   const { suppliers, addSupplier, updateSupplier, deleteSupplier, loading: inventoryLoading } = useInventory(); // Gunakan loading dari context
-  const navigate = useNavigate();
-  const [authLoading, setAuthLoading] = useState(true); // State loading untuk autentikasi
+  // Hapus useNavigate dan state authLoading karena ditangani oleh ProtectedRoute
+  // const navigate = useNavigate();
+  // const [authLoading, setAuthLoading] = useState(true); // State loading untuk autentikasi
 
-  // Cek sesi saat komponen dimuat
+  // Hapus useEffect untuk cek sesi manual
+  /*
   useEffect(() => {
     console.log("SupplierList.tsx: useEffect running");
     const checkSession = async () => {
@@ -65,6 +67,7 @@ const SupplierListPage = () => {
 
     checkSession();
   }, [navigate]); // Tambahkan navigate sebagai dependency
+  */
 
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -136,10 +139,10 @@ const SupplierListPage = () => {
     }
   };
 
-  // Tampilkan loading jika autentikasi atau data inventory sedang dimuat
-  if (authLoading || inventoryLoading) {
+  // Tampilkan loading hanya jika data inventory sedang dimuat
+  if (inventoryLoading) {
       console.log("SupplierList.tsx: Displaying loading state");
-      return <div>Loading...</div>; // Atau spinner, dll.
+      return <div>Memuat data...</div>; // Atau spinner, dll.
   }
 
   console.log("SupplierList.tsx: Displaying content");

@@ -7,13 +7,17 @@ import LowStockItems from '@/components/LowStockItems';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react'; // Import useEffect dan useState
 import { supabase } from '@/integrations/supabase/client'; // Import supabase client
+// Hapus import useSessionContext
+// import { useSessionContext } from '@supabase/auth-ui-react';
 
 const Index = () => {
   const { items, incomingTransactions, outgoingTransactions, loading: inventoryLoading } = useInventory(); // Gunakan loading dari context
-  const navigate = useNavigate();
-  const [authLoading, setAuthLoading] = useState(true); // State loading untuk autentikasi
+  // Hapus useNavigate dan state authLoading karena ditangani oleh ProtectedRoute
+  // const navigate = useNavigate();
+  // const [authLoading, setAuthLoading] = useState(true); // State loading untuk autentikasi
 
-  // Cek sesi saat komponen dimuat
+  // Hapus useEffect untuk cek sesi manual
+  /*
   useEffect(() => {
     console.log("Index.tsx: useEffect running");
     const checkSession = async () => {
@@ -56,10 +60,12 @@ const Index = () => {
     // return () => subscription.unsubscribe();
 
   }, [navigate]); // Tambahkan navigate sebagai dependency
+  */
 
-  console.log("Index.tsx: Render - authLoading:", authLoading, "inventoryLoading:", inventoryLoading);
+  console.log("Index.tsx: Render - inventoryLoading:", inventoryLoading);
 
-  if (authLoading || inventoryLoading) {
+  // Hanya tampilkan loading jika data inventory sedang dimuat
+  if (inventoryLoading) {
       console.log("Index.tsx: Displaying loading state");
       return <div>Loading...</div>;
   }
@@ -75,7 +81,7 @@ const Index = () => {
 
       {/* Transaction Summary Chart */}
       <div className="mb-8">
-        <TransactionChart incomingTotal={totalIncoming} outgoingTotal={totalOutgoing} /> {/* Perbaiki typo totalTotalOutgoing menjadi totalOutgoing */}
+        <TransactionChart incomingTotal={totalIncoming} outgoingTotal={totalOutgoing} />
       </div>
 
       {/* Low Stock Items List */}

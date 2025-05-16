@@ -33,10 +33,12 @@ interface Department {
 const DepartmentListPage = () => {
   // Gunakan fungsi CRUD Supabase dari useInventory
   const { departments, addDepartment, updateDepartment, deleteDepartment, loading: inventoryLoading } = useInventory(); // Gunakan loading dari context
-  const navigate = useNavigate();
-  const [authLoading, setAuthLoading] = useState(true); // State loading untuk autentikasi
+  // Hapus useNavigate dan state authLoading karena ditangani oleh ProtectedRoute
+  // const navigate = useNavigate();
+  // const [authLoading, setAuthLoading] = useState(true); // State loading untuk autentikasi
 
-  // Cek sesi saat komponen dimuat
+  // Hapus useEffect untuk cek sesi manual
+  /*
   useEffect(() => {
     console.log("DepartmentList.tsx: useEffect running");
     const checkSession = async () => {
@@ -63,6 +65,7 @@ const DepartmentListPage = () => {
 
     checkSession();
   }, [navigate]); // Tambahkan navigate sebagai dependency
+  */
 
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -130,8 +133,8 @@ const DepartmentListPage = () => {
      }
   };
 
-  // Tampilkan loading jika autentikasi atau data inventory sedang dimuat
-  if (authLoading || inventoryLoading) {
+  // Tampilkan loading hanya jika data inventory sedang dimuat
+  if (inventoryLoading) {
       console.log("DepartmentList.tsx: Displaying loading state");
       return <div>Memuat data...</div>; // Atau spinner, dll.
   }
