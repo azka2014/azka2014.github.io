@@ -24,60 +24,58 @@ const IncomingReportsPage = () => {
     incomingTransactions,
     items,
     suppliers,
-    departments, // Import departments
+    departments,
     getItemById,
     getSupplierById,
-    getDepartmentById, // Import getDepartmentById
+    getDepartmentById,
     loading
   } = useInventory();
 
   const navigate = useNavigate();
 
-  // State untuk filter
+  // State untuk filter (nilai yang dipilih di UI)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  const [selectedDepartmentId, setSelectedDepartmentId] = useState<string | null>(null); // State for department filter
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null); // State for supplier filter
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+
+  // State untuk memicu pemfilteran saat tombol Proses diklik
+  const [applyFiltersTrigger, setApplyFiltersTrigger] = useState(0);
 
   const handleBackToDashboard = () => {
     navigate('/');
   };
 
-  // Logika pemfilteran menggunakan useMemo
+  // Handler untuk tombol Proses
+  const handleProcessReport = () => {
+    setApplyFiltersTrigger(prev => prev + 1); // Tingkatkan state untuk memicu useMemo
+  };
+
+  // Logika pemfilteran menggunakan useMemo, bergantung pada applyFiltersTrigger
   const filteredIncomingTransactions = useMemo(() => {
+    // Gunakan applyFiltersTrigger di dependency array agar useMemo berjalan saat tombol diklik
+    console.log("Applying filters for Incoming Reports...");
     let filtered = incomingTransactions;
 
     if (selectedItemId) {
       filtered = filtered.filter(tx => tx.item_id === selectedItemId);
     }
 
-    // Add department filter logic
+    // Add supplier filter logic
+    if (selectedSupplierId) {
+        filtered = filtered.filter(tx => tx.supplier_id === selectedSupplierId);
+    }
+
+    // Department filter logic (still noted as potentially not applicable based on schema)
     if (selectedDepartmentId) {
-        // Note: Incoming transactions don't have a department_id column in the DB schema.
-        // This filter will always result in an empty list unless you intend to filter
-        // based on some other criteria related to departments that isn't currently in the data structure.
-        // Assuming for now you might want to filter based on items that are *typically* used by a department,
-        // but the current data structure doesn't support this directly.
-        // For the sake of implementing the filter UI, I'll add the filter logic,
-        // but be aware it might not produce meaningful results with the current DB schema.
-        // If you need to link incoming transactions to departments, the DB schema would need modification.
-
-        // As per the request, adding a filter based on a hypothetical department link.
-        // Since incoming_transactions table doesn't have department_id, this filter
-        // will effectively filter out all transactions if a department is selected.
-        // If the intention is different, please clarify the relationship between
-        // incoming transactions and departments.
-        // For now, I will add a placeholder filter that will always return empty.
-        // If you update your DB schema to link incoming transactions to departments,
-        // this logic would need to be updated accordingly.
-
-        // *** Placeholder filter logic - will always return empty with current schema ***
-        // filtered = filtered.filter(tx => tx.department_id === selectedDepartmentId); // This column doesn't exist
+        // As noted before, incoming_transactions table does not have department_id.
+        // This filter will likely result in an empty list if a department is selected.
+        console.warn("Department filter applied to Incoming Transactions. Note: incoming_transactions table does not have a 'department_id' column. This filter will likely return an empty list with the current database schema.");
         // To make the filter functional based on the *request*, I'll add a filter that
         // will always return an empty array if a department is selected, as there's
         // no department_id in incoming_transactions.
         // If you meant to filter based on something else, please let me know.
         filtered = []; // This line makes the filter return empty if department is selected
-        console.warn("Department filter applied to Incoming Transactions. Note: incoming_transactions table does not have a 'department_id' column. This filter will always return an empty list with the current database schema.");
     }
 
 
@@ -86,8 +84,9 @@ const IncomingReportsPage = () => {
       filtered = filtered.filter(tx => tx.date >= filterDateString);
     }
 
+    console.log("Filtered Incoming Transactions count:", filtered.length);
     return filtered;
-  }, [incomingTransactions, selectedItemId, selectedDepartmentId, selectedDate]); // Add selectedDepartmentId to dependencies
+  }, [incomingTransactions, selectedItemId, selectedSupplierId, selectedDepartmentId, selectedDate, applyFiltersTrigger]); // Add all filter states and trigger to dependencies
 
 
   return (
@@ -100,7 +99,7 @@ const IncomingReportsPage = () => {
           <CardTitle>Filter Laporan Barang Masuk</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"> {/* Added mb-4 for spacing before button */}
             {/* Filter Barang */}
             <div>
               <Label htmlFor="filterItem" className="mb-1 block">Nama Barang</Label>
@@ -117,7 +116,23 @@ const IncomingReportsPage = () => {
               </Select>
             </div>
 
-            {/* Filter Departemen */}
+            {/* Filter Suplier */}
+             <div>
+              <Label htmlFor="filterSupplier" className="mb-1 block">Suplier</Label>
+              <Select onValueChange={(value) => setSelectedSupplierId(value)} value={selectedSupplierId || ''}>
+                <SelectTrigger id="filterSupplier">
+                  <SelectValue placeholder="Semua Suplier" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={null}>Semua Suplier</SelectItem>
+                  {suppliers.map(supplier => (
+                    <SelectItem key={supplier.id} value={supplier.id}>{supplier.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Filter Departemen (Note: May not be applicable based on DB schema) */}
              <div>
               <Label htmlFor="filterDepartment" className="mb-1 block">Departemen</Label>
               <Select onValueChange={(value) => setSelectedDepartmentId(value)} value={selectedDepartmentId || ''}>
@@ -160,6 +175,10 @@ const IncomingReportsPage = () => {
               </Popover>
             </div>
           </div>
+           {/* Proses Button */}
+           <div className="flex justify-end">
+              <Button onClick={handleProcessReport}>Proses Laporan</Button>
+           </div>
         </CardContent>
       </Card>
 
