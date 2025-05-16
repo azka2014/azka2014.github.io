@@ -36,8 +36,8 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      {/* Mengaktifkan future flag v7_startTransition */}
-      <BrowserRouter future={{ v7_startTransition: true }}>
+      {/* Mengaktifkan future flags v7_startTransition dan v7_relativeSplatPath */}
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           <Route path="/login" element={<Login />} />
 
