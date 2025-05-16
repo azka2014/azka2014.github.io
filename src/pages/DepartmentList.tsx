@@ -29,7 +29,8 @@ interface Department {
 }
 
 const DepartmentListPage = () => {
-  const { departments, dispatch } = useInventory(); // Use context
+  // Gunakan fungsi CRUD Supabase dari useInventory
+  const { departments, addDepartment, updateDepartment, deleteDepartment, loading } = useInventory();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentDepartment, setCurrentDepartment] = useState<Department | null>(null);
   const [formState, setFormState] = useState({ name: '' });
@@ -61,7 +62,7 @@ const DepartmentListPage = () => {
   };
 
   // Save department (Add or Edit)
-  const saveDepartment = () => {
+  const saveDepartment = async () => { // Make function async
     if (!formState.name) {
       toast({
         title: "Gagal",
@@ -73,34 +74,26 @@ const DepartmentListPage = () => {
 
     if (currentDepartment) {
       // Edit existing department
-      const updatedDepartment = { ...currentDepartment, ...formState };
-      dispatch({ type: 'UPDATE_DEPARTMENT', payload: updatedDepartment }); // Use dispatch
-      toast({
-        title: "Berhasil",
-        description: "Data departemen berhasil diupdate.",
-      });
+      const updatedDepartment: Department = { // Ensure type matches
+        id: currentDepartment.id,
+        name: formState.name,
+      };
+      await updateDepartment(updatedDepartment); // Call Supabase function
     } else {
       // Add new department
-      const newDepartment: Department = {
-        id: Date.now().toString(), // Simple unique ID
-        ...formState,
+      const newDepartment = { // Omit id for add
+        name: formState.name,
       };
-      dispatch({ type: 'ADD_DEPARTMENT', payload: newDepartment }); // Use dispatch
-      toast({
-        title: "Berhasil",
-        description: "Departemen baru berhasil ditambahkan.",
-      });
+      await addDepartment(newDepartment); // Call Supabase function
     }
     closeDialog();
   };
 
   // Delete department
-  const deleteDepartment = (id: string) => {
-    dispatch({ type: 'DELETE_DEPARTMENT', payload: id }); // Use dispatch
-    toast({
-      title: "Berhasil",
-      description: "Departemen berhasil dihapus.",
-    });
+  const deleteDepartmentHandler = async (id: string) => { // Make function async
+     if (window.confirm("Apakah Anda yakin ingin menghapus departemen ini?")) {
+        await deleteDepartment(id); // Call Supabase function
+     }
   };
 
   return (
@@ -113,44 +106,49 @@ const DepartmentListPage = () => {
         </Button>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nama Departemen</TableHead>
-            <TableHead className="text-right">Aksi</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {departments.length === 0 ? (
+      {loading ? (
+          <p>Memuat data...</p>
+      ) : (
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={2} className="text-center">Belum ada data departemen.</TableCell>
+              <TableHead>Nama Departemen</TableHead>
+              <TableHead className="text-right">Aksi</TableHead>
             </TableRow>
-          ) : (
-            departments.map((department) => (
-              <TableRow key={department.id}>
-                <TableCell>{department.name}</TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="mr-2"
-                    onClick={() => openDialog(department)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => deleteDepartment(department.id)}
-                  >
-                    <Trash2 className="h-4 w-4 text-red-500" />
-                  </Button>
-                </TableCell>
+          </TableHeader>
+          <TableBody>
+            {departments.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={2} className="text-center">Belum ada data departemen.</TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            ) : (
+              departments.map((department) => (
+                <TableRow key={department.id}>
+                  <TableCell>{department.name}</TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mr-2"
+                      onClick={() => openDialog(department)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteDepartmentHandler(department.id)} // Use the async handler
+                    >
+                      <Trash2 className="h-4 w-4 text-red-500" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      )}
+
 
       {/* Add/Edit Department Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
