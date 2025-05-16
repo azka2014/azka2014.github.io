@@ -59,8 +59,6 @@ type Action =
   | { type: 'UPDATE_ITEM'; payload: Item }
   | { type: 'DELETE_ITEM'; payload: string }
   | { type: 'ADD_INCOMING_TRANSACTION'; payload: IncomingTransaction }
-  | { type: 'UPDATE_INCOMING_TRANSACTION'; payload: IncomingTransaction } // Added update action
-  | { type: 'DELETE_INCOMING_TRANSACTION'; payload: string } // Added delete action
   | { type: 'ADD_OUTGOING_TRANSACTION'; payload: OutgoingTransaction };
 
 // Reducer function to handle state changes
@@ -123,61 +121,6 @@ const inventoryReducer = (state: InventoryState, action: Action): InventoryState
         incomingTransactions: [...state.incomingTransactions, transaction],
         items: updatedItems,
       };
-    }
-    case 'UPDATE_INCOMING_TRANSACTION': { // Handle update
-        const updatedTransaction = action.payload;
-        const oldTransaction = state.incomingTransactions.find(tx => tx.id === updatedTransaction.id);
-
-        if (!oldTransaction) {
-            console.error("Transaction not found for update:", updatedTransaction.id);
-            return state; // Return current state if transaction not found
-        }
-
-        // Calculate the difference in quantity
-        const quantityDifference = updatedTransaction.quantity - oldTransaction.quantity;
-
-        const updatedItems = state.items.map(item => {
-            // If the item ID changed (though we'll limit editing to quantity/date for simplicity),
-            // this logic would need to be more complex to adjust stock for both old and new items.
-            // Assuming item ID doesn't change during update for now.
-            if (item.id === updatedTransaction.itemId) {
-                return { ...item, stock: item.stock + quantityDifference };
-            }
-            return item;
-        });
-
-        return {
-            ...state,
-            incomingTransactions: state.incomingTransactions.map(tx =>
-                tx.id === updatedTransaction.id ? updatedTransaction : tx
-            ),
-            items: updatedItems,
-        };
-    }
-    case 'DELETE_INCOMING_TRANSACTION': { // Handle delete
-        const transactionIdToDelete = action.payload;
-        const transactionToDelete = state.incomingTransactions.find(tx => tx.id === transactionIdToDelete);
-
-        if (!transactionToDelete) {
-            console.error("Transaction not found for deletion:", transactionIdToDelete);
-            return state; // Return current state if transaction not found
-        }
-
-        // Decrease stock of the associated item
-        const updatedItems = state.items.map(item => {
-            if (item.id === transactionToDelete.itemId) {
-                // Ensure stock doesn't go below zero
-                const newStock = item.stock - transactionToDelete.quantity;
-                return { ...item, stock: Math.max(0, newStock) };
-            }
-            return item;
-        });
-
-        return {
-            ...state,
-            incomingTransactions: state.incomingTransactions.filter(tx => tx.id !== transactionIdToDelete),
-            items: updatedItems,
-        };
     }
     case 'ADD_OUTGOING_TRANSACTION': {
       const transaction = action.payload;
