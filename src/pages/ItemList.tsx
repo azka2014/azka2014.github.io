@@ -40,12 +40,26 @@ const ItemListPage = () => {
 
   // Cek sesi saat komponen dimuat
   useEffect(() => {
+    console.log("ItemList.tsx: useEffect running");
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate('/login', { replace: true }); // Arahkan ke login jika tidak ada sesi
-      } else {
-        setAuthLoading(false); // Sesi ada, set authLoading false
+      console.log("ItemList.tsx: checkSession running");
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log("ItemList.tsx: getSession result", { session, error });
+
+        if (error) {
+          console.error("ItemList.tsx: Error getting session", error);
+          navigate('/login', { replace: true });
+        } else if (!session) {
+          console.log("ItemList.tsx: No session found, navigating to /login");
+          navigate('/login', { replace: true });
+        } else {
+          console.log("ItemList.tsx: Session found, setting authLoading to false");
+          setAuthLoading(false);
+        }
+      } catch (e) {
+        console.error("ItemList.tsx: Exception during getSession", e);
+        navigate('/login', { replace: true });
       }
     };
 
@@ -123,10 +137,11 @@ const ItemListPage = () => {
 
   // Tampilkan loading jika autentikasi atau data inventory sedang dimuat
   if (authLoading || inventoryLoading) {
+      console.log("ItemList.tsx: Displaying loading state");
       return <div>Memuat data...</div>; // Atau spinner, dll.
   }
 
-
+  console.log("ItemList.tsx: Displaying content");
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-4">
