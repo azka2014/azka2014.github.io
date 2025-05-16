@@ -16,7 +16,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, Printer } from 'lucide-react'; // Import Printer icon
+import { CalendarIcon, Printer } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 
 const OutgoingReportsPage = () => {
@@ -198,9 +198,9 @@ const OutgoingReportsPage = () => {
             </div>
           </div>
            {/* Proses Button */}
-           <div className="flex justify-end gap-2"> {/* Added gap-2 for spacing */}
+           <div className="flex justify-end gap-2">
               <Button onClick={handleProcessReport}>Proses Laporan</Button>
-              <Button onClick={handlePrint} variant="secondary"> {/* Added Print button */}
+              <Button onClick={handlePrint} variant="secondary">
                 <Printer className="mr-2 h-4 w-4" />
                 Cetak Laporan
               </Button>
@@ -217,13 +217,14 @@ const OutgoingReportsPage = () => {
           <Card>
             <CardHeader>
                {/* Dynamic title for printing */}
-              <h2 className="text-xl font-bold mb-4 print-only">{reportTitle}</h2> {/* Add print-only class */}
-              <CardTitle className="no-print">Detail Barang Keluar ({filteredOutgoingTransactions.length} Transaksi)</CardTitle> {/* Add no-print class */}
+              <h2 className="text-xl font-bold mb-4 print-only">{reportTitle}</h2>
+              <CardTitle className="no-print">Detail Barang Keluar ({filteredOutgoingTransactions.length} Transaksi)</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[50px]">No.</TableHead> {/* Added No. header */}
                     <TableHead>Tanggal</TableHead>
                     <TableHead>Nama Barang</TableHead>
                     <TableHead>Departemen</TableHead>
@@ -234,14 +235,15 @@ const OutgoingReportsPage = () => {
                 <TableBody>
                   {filteredOutgoingTransactions.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center">Tidak ada data barang keluar sesuai filter.</TableCell>
+                      <TableCell colSpan={6} className="text-center">Tidak ada data barang keluar sesuai filter.</TableCell> {/* Updated colspan */}
                     </TableRow>
                   ) : (
-                    filteredOutgoingTransactions.map((transaction) => {
+                    filteredOutgoingTransactions.map((transaction, index) => { // Added index
                       const item = getItemById(transaction.item_id);
                       const department = getDepartmentById(transaction.department_id);
                       return (
                         <TableRow key={transaction.id}>
+                          <TableCell className="font-medium">{index + 1}</TableCell> {/* Display index + 1 */}
                           <TableCell>{transaction.date}</TableCell>
                           <TableCell>{item ? item.name : 'Barang Tidak Ditemukan'}</TableCell>
                           <TableCell>{department ? department.name : 'Departemen Tidak Ditemukan'}</TableCell>
@@ -258,7 +260,7 @@ const OutgoingReportsPage = () => {
         </>
       )}
 
-       <Button variant="outline" className="mt-8 no-print" onClick={handleBackToDashboard}> {/* Add no-print class */}
+       <Button variant="outline" className="mt-8 no-print" onClick={handleBackToDashboard}>
         Kembali ke Dashboard
       </Button>
     </div>
