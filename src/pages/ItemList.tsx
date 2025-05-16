@@ -39,7 +39,8 @@ const ItemListPage = () => {
   const [authLoading, setAuthLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState<Item | null>(null);
-  const [formState, setFormState] = useState({ name: '', unit: '' });
+  // Tambahkan initialStock ke formState
+  const [formState, setFormState] = useState({ name: '', unit: '', initialStock: '' });
   const { toast } = useToast();
 
   // Ref for the hidden file input
@@ -76,17 +77,25 @@ const ItemListPage = () => {
   // Handle input changes in the form
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
-    setFormState((prev) => ({ ...prev, [id]: value }));
+     // Handle initialStock input specifically to ensure it's a number or empty
+    if (id === 'initialStock') {
+        // Allow empty string initially, but validate as number later
+        setFormState((prev) => ({ ...prev, [id]: value }));
+    } else {
+        setFormState((prev) => ({ ...prev, [id]: value }));
+    }
   };
 
   // Open dialog for adding or editing
   const openDialog = (item?: Item) => {
     if (item) {
       setCurrentItem(item);
-      setFormState({ name: item.name, unit: item.unit });
+      // Saat edit, set formState hanya untuk nama dan satuan, stok awal tidak diedit
+      setFormState({ name: item.name, unit: item.unit, initialStock: '' }); // Reset initialStock for edit
     } else {
       setCurrentItem(null);
-      setFormState({ name: '', unit: '' });
+      // Reset formState termasuk initialStock saat menambah baru
+      setFormState({ name: '', unit: '', initialStock: '' });
     }
     setIsDialogOpen(true);
   };
@@ -95,12 +104,16 @@ const ItemListPage = () => {
   const closeDialog = () => {
     setIsDialogOpen(false);
     setCurrentItem(null);
-    setFormState({ name: '', unit: '' });
+    // Reset form state
+    setFormState({ name: '', unit: '', initialStock: '' });
   };
 
   // Save item (Add or Edit)
   const saveItem = async () => {
-    if (!formState.name || !formState.unit) {
+    const { name, unit, initialStock } = formState;
+    const initialStockNumber = Number(initialStock);
+
+    if (!name || !unit) {
       toast({
         title: "Gagal",
         description: "Nama barang dan satuan harus diisi.",
@@ -109,21 +122,36 @@ const ItemListPage = () => {
       return;
     }
 
+    // Validasi stok awal hanya saat menambah barang baru
+    if (!currentItem) {
+        if (initialStock === '' || isNaN(initialStockNumber) || initialStockNumber < 0) {
+             toast({
+                title: "Gagal",
+                description: "Stok awal harus berupa angka non-negatif.",
+                variant: "destructive",
+             });
+             return;
+        }
+    }
+
+
     if (currentItem) {
-      // Edit existing item
+      // Edit existing item - JANGAN update stok di sini
       const updatedItem = {
         id: currentItem.id,
-        name: formState.name,
-        unit: formState.unit,
+        name: name,
+        unit: unit,
+        // stock TIDAK disertakan di sini karena dikelola oleh transaksi
       };
       await updateItem(updatedItem);
     } else {
-      // Add new item
+      // Add new item - sertakan stok awal
       const newItem = {
-        name: formState.name,
-        unit: formState.unit,
+        name: name,
+        unit: unit,
+        initialStock: initialStockNumber, // Kirim stok awal
       };
-      await addItem(newItem);
+      await addItem(newItem); // Fungsi addItem di context perlu diupdate
     }
     closeDialog();
   };
@@ -154,6 +182,7 @@ const ItemListPage = () => {
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
           // Convert sheet to array of objects, skipping header row
+          // raw: false keeps numbers as numbers, dates as date objects
           const json: any[] = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false });
 
           if (json.length <= 1) {
@@ -165,28 +194,37 @@ const ItemListPage = () => {
              return;
           }
 
-          // Assuming the first row is header: [Nama Barang, Satuan]
+          // Assuming the first row is header: [Nama Barang, Satuan, Stok Awal (Opsional)]
           // And data starts from the second row
           const header = json[0];
-          const expectedHeader = ["Nama Barang", "Satuan"]; // Define expected headers
+          const expectedHeader = ["Nama Barang", "Satuan"]; // Minimum required headers
+          const optionalHeader = "Stok Awal"; // Optional header for initial stock
 
           // Basic header validation
           if (header.length < expectedHeader.length || !expectedHeader.every((col, index) => header[index] === col)) {
                toast({
                   title: "Gagal Import",
-                  description: `Format header tidak sesuai. Harap gunakan format: ${expectedHeader.join(', ')}`,
+                  description: `Format header tidak sesuai. Harap gunakan format minimal: ${expectedHeader.join(', ')} (Opsional: ${optionalHeader})`,
                   variant: "destructive",
                });
                return;
           }
 
+          // Find column indices
+          const nameIndex = header.indexOf("Nama Barang");
+          const unitIndex = header.indexOf("Satuan");
+          const stockIndex = header.indexOf(optionalHeader); // Find index of optional stock column
+
 
           const itemsToImport = json.slice(1).map(row => {
-             // Map columns based on expected header position
-             const name = row[header.indexOf("Nama Barang")];
-             const unit = row[header.indexOf("Satuan")];
-             return { name, unit };
-          }).filter(item => item.name && item.unit); // Filter out rows with missing data
+             // Map columns based on found indices
+             const name = row[nameIndex];
+             const unit = row[unitIndex];
+             // Get stock if the column exists and the value is a valid number
+             const stock = stockIndex !== -1 && typeof row[stockIndex] === 'number' && !isNaN(row[stockIndex]) ? Math.max(0, Math.floor(row[stockIndex])) : 0; // Ensure non-negative integer
+
+             return { name, unit, initialStock: stock }; // Pass stock as initialStock
+          }).filter(item => item.name && item.unit); // Filter out rows with missing required data (name, unit)
 
           if (itemsToImport.length === 0) {
                toast({
@@ -218,7 +256,7 @@ const ItemListPage = () => {
   };
 
   // Process imported data and add to Supabase
-  const handleImport = async (itemsToImport: { name: string; unit: string }[]) => {
+  const handleImport = async (itemsToImport: { name: string; unit: string; initialStock: number }[]) => {
       let successCount = 0;
       let errorCount = 0;
       const importToastId = toast({
@@ -228,20 +266,10 @@ const ItemListPage = () => {
       });
 
       for (const item of itemsToImport) {
-          // Check if item with same name and unit already exists (optional, depends on desired behavior)
-          // const existingItem = items.find(i => i.name === item.name && i.unit === item.unit);
-          // if (existingItem) {
-          //     console.warn(`Item '${item.name} (${item.unit})' already exists, skipping.`);
-          //     errorCount++; // Or handle as a skipped item
-          //     continue;
-          // }
-
-          // Use the existing addItem function from context
-          // Note: addItem already handles Supabase insertion and local state update/refetch
           try {
-              // addItem is async and handles its own toast/error logging
-              // We just need to count success/failure here
-              await addItem(item); // This will trigger fetchInventory internally
+              // Use the existing addItem function from context
+              // Pass the initialStock from the parsed data
+              await addItem({ name: item.name, unit: item.unit, initialStock: item.initialStock }); // Pass initialStock
               successCount++;
           } catch (e) {
               console.error("Error importing item:", item, e);
@@ -372,6 +400,37 @@ const ItemListPage = () => {
                 className="col-span-3"
               />
             </div>
+            {/* Tampilkan input Stok Awal HANYA saat menambah barang baru */}
+            {!currentItem && (
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="initialStock" className="text-right">
+                    Stok Awal
+                  </Label>
+                  <Input
+                    id="initialStock"
+                    type="number"
+                    value={formState.initialStock}
+                    onChange={handleInputChange}
+                    className="col-span-3"
+                    min="0"
+                  />
+                </div>
+            )}
+             {/* Tampilkan Stok Saat Ini saat mengedit (tidak bisa diedit) */}
+             {currentItem && (
+                 <div className="grid grid-cols-4 items-center gap-4">
+                   <Label htmlFor="currentStock" className="text-right">
+                     Stok Saat Ini
+                   </Label>
+                   <Input
+                     id="currentStock"
+                     type="number"
+                     value={currentItem.stock} // Tampilkan stok saat ini
+                     className="col-span-3"
+                     disabled // Nonaktifkan input
+                   />
+                 </div>
+             )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={closeDialog}>Batal</Button>
