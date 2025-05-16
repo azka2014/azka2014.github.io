@@ -19,14 +19,16 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   ];
 
   return (
-    <div className={cn("flex flex-col space-y-2 p-4 border-r bg-sidebar text-sidebar-foreground", className)}>
-      <h2 className="text-lg font-semibold mb-4 text-sidebar-primary">Menu Navigasi</h2>
+    // Changed background to green-700, text to white, title to gray-200, hover states
+    <div className={cn("flex flex-col space-y-2 p-4 border-r bg-green-700 text-gray-100", className)}>
+      <h2 className="text-lg font-semibold mb-4 text-gray-200">Menu Navigasi</h2>
       <nav className="flex flex-col space-y-1">
         {navItems.map((item) => (
           <Link
             key={item.name}
             to={item.href}
-            className="flex items-center space-x-2 px-3 py-2 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+            // Adjusted hover background and text color for contrast on green
+            className="flex items-center space-x-2 px-3 py-2 rounded-md hover:bg-green-600 hover:text-white transition-colors"
           >
             <item.icon className="h-4 w-4" />
             <span>{item.name}</span>
