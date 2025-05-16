@@ -66,8 +66,6 @@ type Action =
   | { type: 'UPDATE_INCOMING_TRANSACTION'; payload: IncomingTransaction }
   | { type: 'DELETE_INCOMING_TRANSACTION'; payload: string }
   | { type: 'ADD_OUTGOING_TRANSACTION'; payload: OutgoingTransaction }
-  | { type: 'UPDATE_OUTGOING_TRANSACTION'; payload: OutgoingTransaction } // Added update action
-  | { type: 'DELETE_OUTGOING_TRANSACTION'; payload: string } // Added delete action
   | { type: 'SET_LOADING'; payload: boolean } // Action to set loading state
   | { type: 'SET_ERROR'; payload: string | null }; // Action to set error state
 
@@ -150,20 +148,6 @@ const inventoryReducer = (state: InventoryState, action: Action): InventoryState
         outgoingTransactions: [...state.outgoingTransactions, action.payload],
          // Stock update will be handled by a database trigger or function later
       };
-    case 'UPDATE_OUTGOING_TRANSACTION': // Added update case
-        return {
-            ...state,
-            outgoingTransactions: state.outgoingTransactions.map(tx =>
-                tx.id === action.payload.id ? action.payload : tx
-            ),
-             // Stock update will be handled by a database trigger or function later
-        };
-    case 'DELETE_OUTGOING_TRANSACTION': // Added delete case
-        return {
-            ...state,
-            outgoingTransactions: state.outgoingTransactions.filter(tx => tx.id !== action.payload),
-             // Stock update will be handled by a database trigger or function later
-        };
     default:
       return state;
   }
@@ -198,8 +182,6 @@ interface InventoryContextProps extends InventoryState {
   updateIncomingTransaction: (transaction: IncomingTransaction) => Promise<void>;
   deleteIncomingTransaction: (id: string) => Promise<void>;
   addOutgoingTransaction: (transaction: Omit<OutgoingTransaction, 'id'>) => Promise<void>;
-  updateOutgoingTransaction: (transaction: OutgoingTransaction) => Promise<void>; // Added update function
-  deleteOutgoingTransaction: (id: string) => Promise<void>; // Added delete function
   // Helper functions to get data by ID (operate on local state)
   getItemById: (id: string) => Item | undefined;
   getSupplierById: (id: string) => Supplier | undefined;
@@ -434,34 +416,6 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
-  // Added update function for outgoing transactions
-  const updateOutgoingTransaction = async (transaction: OutgoingTransaction) => {
-      // Supabase will handle stock update via trigger/function
-      const { data, error } = await supabase.from('outgoing_transactions').update(transaction).eq('id', transaction.id).select().single();
-      if (error) {
-          console.error("Error updating outgoing transaction:", error);
-          toast({ title: "Gagal", description: `Gagal mengupdate transaksi keluar: ${error.message}`, variant: "destructive" });
-      } else if (data) {
-          // Refetch all data to ensure stock is updated correctly in local state
-          fetchInventory();
-          toast({ title: "Berhasil", description: "Transaksi barang keluar berhasil diupdate." });
-      }
-  };
-
-  // Added delete function for outgoing transactions
-  const deleteOutgoingTransaction = async (id: string) => {
-      // Supabase will handle stock update via trigger/function
-      const { error } = await supabase.from('outgoing_transactions').delete().eq('id', id);
-      if (error) {
-          console.error("Error deleting outgoing transaction:", error);
-          toast({ title: "Gagal", description: `Gagal menghapus transaksi keluar: ${error.message}`, variant: "destructive" });
-      } else {
-          // Refetch all data to ensure stock is updated correctly in local state
-          fetchInventory();
-          toast({ title: "Berhasil", description: "Transaksi barang keluar berhasil dihapus." });
-      }
-  };
-
 
   // Helper functions to get data by ID (operate on local state)
   const getItemById = (id: string) => state.items.find(item => item.id === id);
@@ -478,7 +432,7 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         addDepartment, updateDepartment, deleteDepartment,
         addItem, updateItem, deleteItem,
         addIncomingTransaction, updateIncomingTransaction, deleteIncomingTransaction,
-        addOutgoingTransaction, updateOutgoingTransaction, deleteOutgoingTransaction, // Added new functions
+        addOutgoingTransaction,
         getItemById, getSupplierById, getDepartmentById
      }}>
       {children}
