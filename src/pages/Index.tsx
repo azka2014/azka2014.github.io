@@ -15,12 +15,28 @@ const Index = () => {
 
   // Cek sesi saat komponen dimuat
   useEffect(() => {
+    console.log("Index.tsx: useEffect running");
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate('/login', { replace: true }); // Arahkan ke login jika tidak ada sesi
-      } else {
-        setAuthLoading(false); // Sesi ada, set authLoading false
+      console.log("Index.tsx: checkSession running");
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log("Index.tsx: getSession result", { session, error });
+
+        if (error) {
+          console.error("Index.tsx: Error getting session", error);
+          // Optionally handle error, maybe redirect to login or show error message
+          navigate('/login', { replace: true });
+        } else if (!session) {
+          console.log("Index.tsx: No session found, navigating to /login");
+          navigate('/login', { replace: true });
+        } else {
+          console.log("Index.tsx: Session found, setting authLoading to false");
+          setAuthLoading(false);
+        }
+      } catch (e) {
+        console.error("Index.tsx: Exception during getSession", e);
+        // Handle unexpected errors during session check
+        navigate('/login', { replace: true });
       }
     };
 
@@ -28,20 +44,27 @@ const Index = () => {
 
     // Optional: Listen for auth state changes if needed for real-time updates
     // const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    //   console.log("Index.tsx: Auth state change", _event, session);
     //   if (!session) {
+    //     console.log("Index.tsx: Auth state change - No session, navigating to /login");
     //     navigate('/login', { replace: true });
+    //   } else {
+    //      console.log("Index.tsx: Auth state change - Session found, setting authLoading to false");
+    //      setAuthLoading(false); // Ensure loading is false on sign in
     //   }
     // });
     // return () => subscription.unsubscribe();
 
   }, [navigate]); // Tambahkan navigate sebagai dependency
 
-  // Tampilkan loading jika autentikasi atau data inventory sedang dimuat
+  console.log("Index.tsx: Render - authLoading:", authLoading, "inventoryLoading:", inventoryLoading);
+
   if (authLoading || inventoryLoading) {
-      return <div>Loading...</div>; // Atau spinner, dll.
+      console.log("Index.tsx: Displaying loading state");
+      return <div>Loading...</div>;
   }
 
-
+  console.log("Index.tsx: Displaying content");
   const totalIncoming = incomingTransactions.reduce((sum, tx) => sum + tx.quantity, 0);
   const totalOutgoing = outgoingTransactions.reduce((sum, tx) => sum + tx.quantity, 0);
 
@@ -52,7 +75,7 @@ const Index = () => {
 
       {/* Transaction Summary Chart */}
       <div className="mb-8">
-        <TransactionChart incomingTotal={totalIncoming} outgoingTotal={totalTotalOutgoing} /> {/* Perbaiki typo totalTotalOutgoing menjadi totalOutgoing */}
+        <TransactionChart incomingTotal={totalIncoming} outgoingTotal={totalOutgoing} /> {/* Perbaiki typo totalTotalOutgoing menjadi totalOutgoing */}
       </div>
 
       {/* Low Stock Items List */}

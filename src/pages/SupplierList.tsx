@@ -40,12 +40,26 @@ const SupplierListPage = () => {
 
   // Cek sesi saat komponen dimuat
   useEffect(() => {
+    console.log("SupplierList.tsx: useEffect running");
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate('/login', { replace: true }); // Arahkan ke login jika tidak ada sesi
-      } else {
-        setAuthLoading(false); // Sesi ada, set authLoading false
+      console.log("SupplierList.tsx: checkSession running");
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log("SupplierList.tsx: getSession result", { session, error });
+
+        if (error) {
+          console.error("SupplierList.tsx: Error getting session", error);
+          navigate('/login', { replace: true });
+        } else if (!session) {
+          console.log("SupplierList.tsx: No session found, navigating to /login");
+          navigate('/login', { replace: true });
+        } else {
+          console.log("SupplierList.tsx: Session found, setting authLoading to false");
+          setAuthLoading(false);
+        }
+      } catch (e) {
+        console.error("SupplierList.tsx: Exception during getSession", e);
+        navigate('/login', { replace: true });
       }
     };
 
@@ -124,10 +138,11 @@ const SupplierListPage = () => {
 
   // Tampilkan loading jika autentikasi atau data inventory sedang dimuat
   if (authLoading || inventoryLoading) {
+      console.log("SupplierList.tsx: Displaying loading state");
       return <div>Loading...</div>; // Atau spinner, dll.
   }
 
-
+  console.log("SupplierList.tsx: Displaying content");
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-4">

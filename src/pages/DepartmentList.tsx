@@ -38,12 +38,26 @@ const DepartmentListPage = () => {
 
   // Cek sesi saat komponen dimuat
   useEffect(() => {
+    console.log("DepartmentList.tsx: useEffect running");
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate('/login', { replace: true }); // Arahkan ke login jika tidak ada sesi
-      } else {
-        setAuthLoading(false); // Sesi ada, set authLoading false
+      console.log("DepartmentList.tsx: checkSession running");
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log("DepartmentList.tsx: getSession result", { session, error });
+
+        if (error) {
+          console.error("DepartmentList.tsx: Error getting session", error);
+          navigate('/login', { replace: true });
+        } else if (!session) {
+          console.log("DepartmentList.tsx: No session found, navigating to /login");
+          navigate('/login', { replace: true });
+        } else {
+          console.log("DepartmentList.tsx: Session found, setting authLoading to false");
+          setAuthLoading(false);
+        }
+      } catch (e) {
+        console.error("DepartmentList.tsx: Exception during getSession", e);
+        navigate('/login', { replace: true });
       }
     };
 
@@ -118,9 +132,11 @@ const DepartmentListPage = () => {
 
   // Tampilkan loading jika autentikasi atau data inventory sedang dimuat
   if (authLoading || inventoryLoading) {
+      console.log("DepartmentList.tsx: Displaying loading state");
       return <div>Loading...</div>; // Atau spinner, dll.
   }
 
+  console.log("DepartmentList.tsx: Displaying content");
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-4">
@@ -169,36 +185,6 @@ const DepartmentListPage = () => {
             )}
           </TableBody>
         </Table>
-      )}
-
-
-      {/* Add/Edit Department Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>{currentDepartment ? 'Edit Departemen' : 'Tambah Departemen'}</DialogTitle>
-            <DialogDescription>
-              {currentDepartment ? 'Edit data departemen.' : 'Tambahkan departemen baru.'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Nama
-              </Label>
-              <Input
-                id="name"
-                value={formState.name}
-                onChange={handleInputChange}
-                className="col-span-3"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={closeDialog}>Batal</Button>
-            <Button onClick={saveDepartment}>{currentDepartment ? 'Simpan Perubahan' : 'Tambah Departemen'}</Button>
-          </DialogFooter>
-        </DialogContent>
       </Dialog>
     </div>
   );
