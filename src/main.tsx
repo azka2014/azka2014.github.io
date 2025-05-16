@@ -5,21 +5,17 @@ import "./globals.css";
 import { InventoryProvider } from "./context/InventoryContext.tsx";
 // Import AuthProvider
 import { AuthProvider } from './context/AuthContext.tsx';
-// Import SessionContextProvider
-import { SessionContextProvider } from '@supabase/auth-ui-react';
-// Import supabase client
-import { supabase } from './integrations/supabase/client.ts';
+// SessionContextProvider is not needed with custom AuthProvider
+// import { SessionContextProvider } from '@supabase/auth-ui-react';
+// Import supabase client is not needed here as it's imported in AuthContext
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    {/* SessionContextProvider should wrap everything that needs session context */}
-    <SessionContextProvider supabaseClient={supabase}>
-      {/* AuthProvider can wrap the rest, using the session from SessionContextProvider */}
-      <AuthProvider>
-        <InventoryProvider>
-          <App />
-        </InventoryProvider>
-      </AuthProvider>
-    </SessionContextProvider>
+    {/* Wrap with AuthProvider */}
+    <AuthProvider>
+      <InventoryProvider>
+        <App />
+      </InventoryProvider>
+    </AuthProvider>
   </React.StrictMode>
 );

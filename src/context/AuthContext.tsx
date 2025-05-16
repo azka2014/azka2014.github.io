@@ -1,7 +1,6 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Session } from '@supabase/supabase-js';
-// Import useSessionContext from the auth-ui library
-import { useSessionContext } from '@supabase/auth-ui-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AuthContextType {
   session: Session | null;
@@ -11,10 +10,29 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Use the session and isLoading from the official provider hook
-  const { session, isLoading } = useSessionContext();
+  const [session, setSession] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // The custom provider just passes these values down
+  useEffect(() => {
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, currentSession) => {
+      setSession(currentSession);
+      setIsLoading(false);
+    });
+
+    // Also perform an initial check in case the listener doesn't fire immediately
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+        setSession(initialSession);
+        setIsLoading(false);
+    }).catch((error) => {
+        console.error("Error getting initial session:", error);
+        setIsLoading(false); // Ensure loading is false even on error
+    });
+
+
+    return () => subscription.unsubscribe();
+  }, []); // Empty dependency array means this runs once on mount
+
   return (
     <AuthContext.Provider value={{ session, isLoading }}>
       {children}
@@ -25,7 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider (which should be inside SessionContextProvider)');
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
