@@ -36,8 +36,8 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      {/* TooltipProvider sekarang hanya memiliki BrowserRouter sebagai anak langsung */}
-      <BrowserRouter>
+      {/* Mengaktifkan future flag v7_startTransition */}
+      <BrowserRouter future={{ v7_startTransition: true }}>
         <Routes>
           <Route path="/login" element={<Login />} />
 
@@ -55,7 +55,6 @@ const App = () => (
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
-    {/* Toaster dan Sonner dipindahkan ke luar TooltipProvider */}
     <Toaster />
     <Sonner />
   </QueryClientProvider>
