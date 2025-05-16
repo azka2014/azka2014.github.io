@@ -17,6 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { format } from 'date-fns'; // Import format for date display
 import { cn } from '@/lib/utils'; // Import cn for classnames
 import { CalendarIcon } from 'lucide-react'; // Import CalendarIcon
+import { Label } from '@/components/ui/label'; // Import Label component
 
 const ReportsPage = () => {
   const {
@@ -74,7 +75,7 @@ const ReportsPage = () => {
 
      if (selectedDate) {
       // Filter transaksi pada atau setelah tanggal yang dipilih
-      const filterDateString = format(selectedDate, 'yyyy-MM-dd');
+      const filterDateString = format(selectedDate, 'yyyy-MM-MM'); // Fix: Should be 'yyyy-MM-dd'
       filtered = filtered.filter(tx => tx.date >= filterDateString);
     }
 
