@@ -24,10 +24,8 @@ const IncomingReportsPage = () => {
     incomingTransactions,
     items,
     suppliers,
-    // departments, // Removed departments import
     getItemById,
     getSupplierById,
-    // getDepartmentById, // Removed getDepartmentById import
     loading
   } = useInventory();
 
@@ -36,7 +34,6 @@ const IncomingReportsPage = () => {
   // State untuk filter (nilai yang dipilih di UI)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null); // State for supplier filter
-  // const [selectedDepartmentId, setSelectedDepartmentId] = useState<string | null>(null); // Removed department state
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
   // State untuk memicu pemfilteran saat tombol Proses diklik
@@ -66,8 +63,6 @@ const IncomingReportsPage = () => {
         filtered = filtered.filter(tx => tx.supplier_id === selectedSupplierId);
     }
 
-    // Removed department filter logic
-
     if (selectedDate) {
       const filterDateString = format(selectedDate, 'yyyy-MM-dd');
       filtered = filtered.filter(tx => tx.date >= filterDateString);
@@ -75,7 +70,7 @@ const IncomingReportsPage = () => {
 
     console.log("Filtered Incoming Transactions count:", filtered.length);
     return filtered;
-  }, [incomingTransactions, selectedItemId, selectedSupplierId, selectedDate, applyFiltersTrigger]); // Removed selectedDepartmentId from dependencies
+  }, [incomingTransactions, selectedItemId, selectedSupplierId, selectedDate, applyFiltersTrigger]); // Add all filter states and trigger to dependencies
 
 
   return (
@@ -120,22 +115,6 @@ const IncomingReportsPage = () => {
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Removed Filter Departemen */}
-             {/* <div>
-              <Label htmlFor="filterDepartment" className="mb-1 block">Departemen</Label>
-              <Select onValueChange={(value) => setSelectedDepartmentId(value)} value={selectedDepartmentId || ''}>
-                <SelectTrigger id="filterDepartment">
-                  <SelectValue placeholder="Semua Departemen" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={null}>Semua Departemen</SelectItem>
-                  {departments.map(department => (
-                    <SelectItem key={department.id} value={department.id}>{department.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div> */}
 
             {/* Filter Tanggal */}
             <div>
@@ -189,12 +168,13 @@ const IncomingReportsPage = () => {
                     <TableHead>Nama Barang</TableHead>
                     <TableHead>Suplier</TableHead>
                     <TableHead>Kuantitas</TableHead>
+                    <TableHead>Satuan</TableHead> {/* Added Satuan header */}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredIncomingTransactions.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center">Tidak ada data barang masuk sesuai filter.</TableCell>
+                      <TableCell colSpan={5} className="text-center">Tidak ada data barang masuk sesuai filter.</TableCell> {/* Updated colspan */}
                     </TableRow>
                   ) : (
                     filteredIncomingTransactions.map((transaction) => {
@@ -206,6 +186,7 @@ const IncomingReportsPage = () => {
                           <TableCell>{item ? item.name : 'Barang Tidak Ditemukan'}</TableCell>
                           <TableCell>{supplier ? supplier.name : 'Suplier Tidak Ditemukan'}</TableCell>
                           <TableCell>{transaction.quantity}</TableCell>
+                          <TableCell>{item ? item.unit : '-'}</TableCell> {/* Display item unit */}
                         </TableRow>
                       );
                     })

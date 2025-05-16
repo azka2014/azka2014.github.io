@@ -152,12 +152,13 @@ const OutgoingReportsPage = () => {
                     <TableHead>Nama Barang</TableHead>
                     <TableHead>Departemen</TableHead>
                     <TableHead>Kuantitas</TableHead>
+                    <TableHead>Satuan</TableHead> {/* Added Satuan header */}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredOutgoingTransactions.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center">Tidak ada data barang keluar sesuai filter.</TableCell>
+                      <TableCell colSpan={5} className="text-center">Tidak ada data barang keluar sesuai filter.</TableCell> {/* Updated colspan */}
                     </TableRow>
                   ) : (
                     filteredOutgoingTransactions.map((transaction) => {
@@ -169,6 +170,7 @@ const OutgoingReportsPage = () => {
                           <TableCell>{item ? item.name : 'Barang Tidak Ditemukan'}</TableCell>
                           <TableCell>{department ? department.name : 'Departemen Tidak Ditemukan'}</TableCell>
                           <TableCell>{transaction.quantity}</TableCell>
+                          <TableCell>{item ? item.unit : '-'}</TableCell> {/* Display item unit */}
                         </TableRow>
                       );
                     })
