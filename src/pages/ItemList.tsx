@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Import useEffect
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -22,6 +22,8 @@ import { Label } from '@/components/ui/label';
 import { Pencil, Trash2, PlusCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useInventory } from '@/context/InventoryContext'; // Import the context hook
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { supabase } from '@/integrations/supabase/client'; // Import supabase client
 
 interface Item {
   id: string;
@@ -32,7 +34,25 @@ interface Item {
 
 const ItemListPage = () => {
   // Gunakan fungsi CRUD Supabase dari useInventory
-  const { items, addItem, updateItem, deleteItem, loading } = useInventory(); // Use context
+  const { items, addItem, updateItem, deleteItem, loading: inventoryLoading } = useInventory(); // Use context
+  const navigate = useNavigate();
+  const [authLoading, setAuthLoading] = useState(true); // State loading untuk autentikasi
+
+  // Cek sesi saat komponen dimuat
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate('/login', { replace: true }); // Arahkan ke login jika tidak ada sesi
+      } else {
+        setAuthLoading(false); // Sesi ada, set authLoading false
+      }
+    };
+
+    checkSession();
+  }, [navigate]); // Tambahkan navigate sebagai dependency
+
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState<Item | null>(null);
   const [formState, setFormState] = useState({ name: '', unit: '' });
@@ -97,12 +117,15 @@ const ItemListPage = () => {
   const deleteItemHandler = async (id: string) => { // Make function async
     if (window.confirm("Apakah Anda yakin ingin menghapus barang ini?")) {
       await deleteItem(id); // Call Supabase function
-      toast({ // Toast is now handled by the context function
-        title: "Berhasil",
-        description: "Barang berhasil dihapus.",
-      });
+      // Toast is now handled by the context function
     }
   };
+
+  // Tampilkan loading jika autentikasi atau data inventory sedang dimuat
+  if (authLoading || inventoryLoading) {
+      return <div>Memuat data...</div>; // Atau spinner, dll.
+  }
+
 
   return (
     <div className="p-4">
@@ -114,52 +137,48 @@ const ItemListPage = () => {
         </Button>
       </div>
 
-      {loading ? (
-          <p>Memuat data...</p>
-      ) : (
-        <Table>
-          <TableHeader>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Nama Barang</TableHead>
+            <TableHead>Satuan</TableHead>
+            <TableHead>Stok</TableHead>
+            <TableHead className="text-right">Aksi</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {items.length === 0 ? (
             <TableRow>
-              <TableHead>Nama Barang</TableHead>
-              <TableHead>Satuan</TableHead>
-              <TableHead>Stok</TableHead>
-              <TableHead className="text-right">Aksi</TableHead>
+              <TableCell colSpan={4} className="text-center">Belum ada data barang.</TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center">Belum ada data barang.</TableCell>
+          ) : (
+            items.map((item) => (
+              <TableRow key={item.id}>
+                <TableCell>{item.name}</TableCell>
+                <TableCell>{item.unit}</TableCell>
+                <TableCell>{item.stock}</TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mr-2"
+                    onClick={() => openDialog(item)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => deleteItemHandler(item.id)} // Use the async handler
+                  >
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                  </Button>
+                </TableCell>
               </TableRow>
-            ) : (
-              items.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>{item.name}</TableCell>
-                  <TableCell>{item.unit}</TableCell>
-                  <TableCell>{item.stock}</TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="mr-2"
-                      onClick={() => openDialog(item)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteItemHandler(item.id)} // Use the async handler
-                    >
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      )}
+            ))
+          )}
+        </TableBody>
+      </Table>
 
 
       {/* Add/Edit Item Dialog */}
