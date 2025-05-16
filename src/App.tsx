@@ -14,15 +14,16 @@ import OutgoingTransactionListPage from "./pages/OutgoingTransactionList";
 import ReportsPage from "./pages/ReportsPage";
 import MainLayout from "./components/MainLayout";
 import Login from "./pages/Login"; // Import Login page
-// Import useSessionContext
-import { useSessionContext } from '@supabase/auth-ui-react';
+// Import useAuth from custom context
+import { useAuth } from './context/AuthContext';
 import React from "react"; // Import React
 
 const queryClient = new QueryClient();
 
 // Komponen ProtectedRoute
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
-  const { session, isLoading } = useSessionContext();
+  // Use useAuth hook
+  const { session, isLoading } = useAuth();
 
   if (isLoading) {
       // Tampilkan loading state saat sesi sedang dimuat
