@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom'; // Import useNavigate
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -25,6 +25,12 @@ const ReportsPage = () => {
     getDepartmentById,
     loading // Gunakan loading state dari context
   } = useInventory();
+
+  const navigate = useNavigate(); // Inisialisasi useNavigate
+
+  const handleBackToDashboard = () => {
+    navigate('/'); // Navigasi ke halaman dashboard
+  };
 
   return (
     <div className="p-4">
@@ -114,9 +120,9 @@ const ReportsPage = () => {
         </>
       )}
 
-
-       <Button variant="outline" asChild className="mt-8"> {/* Added margin top */}
-        <Link to="/">Kembali ke Dashboard</Link>
+       {/* Menggunakan Button biasa dengan onClick dan useNavigate */}
+       <Button variant="outline" className="mt-8" onClick={handleBackToDashboard}>
+        Kembali ke Dashboard
       </Button>
     </div>
   );
