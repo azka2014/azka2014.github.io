@@ -191,7 +191,8 @@ interface InventoryContextProps extends InventoryState {
   addDepartment: (department: Omit<Department, 'id'>) => Promise<void>;
   updateDepartment: (department: Department) => Promise<void>;
   deleteDepartment: (id: string) => Promise<void>;
-  addItem: (item: Omit<Item, 'id' | 'stock'>) => Promise<void>; // Stock is managed by transactions
+  // Updated addItem to accept initialStock
+  addItem: (item: Omit<Item, 'id'>) => Promise<void>; // Now accepts 'stock' as initialStock
   updateItem: (item: Omit<Item, 'stock'>) => Promise<void>; // Stock is managed by transactions
   deleteItem: (id: string) => Promise<void>;
   addIncomingTransaction: (transaction: Omit<IncomingTransaction, 'id'>) => Promise<void>;
@@ -341,15 +342,16 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
-  const addItem = async (item: Omit<Item, 'id' | 'stock'>) => {
-     // Rely on the database default for stock (which is 0)
-    const { data, error } = await supabase.from('items').insert([{ name: item.name, unit: item.unit }]).select().single();
+  // Updated addItem to accept initialStock
+  const addItem = async (item: Omit<Item, 'id'>) => {
+     // Include the initialStock when inserting
+    const { data, error } = await supabase.from('items').insert([{ name: item.name, unit: item.unit, stock: item.stock }]).select().single();
      if (error) {
       console.error("Error adding item:", error);
       toast({ title: "Gagal", description: `Gagal menambahkan barang: ${error.message}`, variant: "destructive" });
     } else if (data) {
-      // The 'data' returned by select().single() after insert should be the newly inserted row
-      // This row should include the generated 'id' and the initial 'stock' (0)
+       // The 'data' returned by select().single() after insert should be the newly inserted row
+       // This row should include the generated 'id' and the initial 'stock'
       dispatch({ type: 'ADD_ITEM', payload: data });
       toast({ title: "Berhasil", description: "Barang baru berhasil ditambahkan." });
     }
