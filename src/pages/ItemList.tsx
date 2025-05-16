@@ -31,7 +31,8 @@ interface Item {
 }
 
 const ItemListPage = () => {
-  const { items, dispatch } = useInventory(); // Use context
+  // Gunakan fungsi CRUD Supabase dari useInventory
+  const { items, addItem, updateItem, deleteItem, loading } = useInventory(); // Use context
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState<Item | null>(null);
   const [formState, setFormState] = useState({ name: '', unit: '' });
@@ -63,7 +64,7 @@ const ItemListPage = () => {
   };
 
   // Save item (Add or Edit)
-  const saveItem = () => {
+  const saveItem = async () => { // Make function async
     if (!formState.name || !formState.unit) {
       toast({
         title: "Gagal",
@@ -75,35 +76,32 @@ const ItemListPage = () => {
 
     if (currentItem) {
       // Edit existing item
-      const updatedItem = { ...currentItem, ...formState };
-      dispatch({ type: 'UPDATE_ITEM', payload: updatedItem }); // Use dispatch
-      toast({
-        title: "Berhasil",
-        description: "Data barang berhasil diupdate.",
-      });
+      const updatedItem = { // Omit stock as it's managed by transactions
+        id: currentItem.id,
+        name: formState.name,
+        unit: formState.unit,
+      };
+      await updateItem(updatedItem); // Call Supabase function
     } else {
       // Add new item
-      const newItem: Item = {
-        id: Date.now().toString(), // Simple unique ID
-        ...formState,
-        stock: 0, // New items start with 0 stock
+      const newItem = { // Omit id and stock for add
+        name: formState.name,
+        unit: formState.unit,
       };
-      dispatch({ type: 'ADD_ITEM', payload: newItem }); // Use dispatch
-      toast({
-        title: "Berhasil",
-        description: "Barang baru berhasil ditambahkan.",
-      });
+      await addItem(newItem); // Call Supabase function
     }
     closeDialog();
   };
 
   // Delete item
-  const deleteItem = (id: string) => {
-    dispatch({ type: 'DELETE_ITEM', payload: id }); // Use dispatch
-    toast({
-      title: "Berhasil",
-      description: "Barang berhasil dihapus.",
-    });
+  const deleteItemHandler = async (id: string) => { // Make function async
+    if (window.confirm("Apakah Anda yakin ingin menghapus barang ini?")) {
+      await deleteItem(id); // Call Supabase function
+      toast({ // Toast is now handled by the context function
+        title: "Berhasil",
+        description: "Barang berhasil dihapus.",
+      });
+    }
   };
 
   return (
@@ -116,48 +114,53 @@ const ItemListPage = () => {
         </Button>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nama Barang</TableHead>
-            <TableHead>Satuan</TableHead>
-            <TableHead>Stok</TableHead>
-            <TableHead className="text-right">Aksi</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {items.length === 0 ? (
+      {loading ? (
+          <p>Memuat data...</p>
+      ) : (
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={4} className="text-center">Belum ada data barang.</TableCell>
+              <TableHead>Nama Barang</TableHead>
+              <TableHead>Satuan</TableHead>
+              <TableHead>Stok</TableHead>
+              <TableHead className="text-right">Aksi</TableHead>
             </TableRow>
-          ) : (
-            items.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell>{item.name}</TableCell>
-                <TableCell>{item.unit}</TableCell>
-                <TableCell>{item.stock}</TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="mr-2"
-                    onClick={() => openDialog(item)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => deleteItem(item.id)}
-                  >
-                    <Trash2 className="h-4 w-4 text-red-500" />
-                  </Button>
-                </TableCell>
+          </TableHeader>
+          <TableBody>
+            {items.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center">Belum ada data barang.</TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            ) : (
+              items.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell>{item.name}</TableCell>
+                  <TableCell>{item.unit}</TableCell>
+                  <TableCell>{item.stock}</TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mr-2"
+                      onClick={() => openDialog(item)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteItemHandler(item.id)} // Use the async handler
+                    >
+                      <Trash2 className="h-4 w-4 text-red-500" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      )}
+
 
       {/* Add/Edit Item Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
