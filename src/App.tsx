@@ -10,7 +10,12 @@ import DepartmentListPage from "./pages/DepartmentList";
 import ItemListPage from "./pages/ItemList";
 import IncomingTransactionListPage from "./pages/IncomingTransactionList";
 import OutgoingTransactionListPage from "./pages/OutgoingTransactionList";
-import ReportsPage from "./pages/ReportsPage";
+// Hapus import ReportsPage yang lama
+// import ReportsPage from "./pages/ReportsPage";
+// Import halaman laporan baru
+import IncomingReportsPage from "./pages/IncomingReportsPage";
+import OutgoingReportsPage from "./pages/OutgoingReportsPage";
+
 import MainLayout from "./components/MainLayout";
 import Login from "./pages/Login";
 import { useAuth } from './context/AuthContext';
@@ -36,7 +41,6 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      {/* Mengaktifkan future flags v7_startTransition dan v7_relativeSplatPath */}
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -48,7 +52,9 @@ const App = () => (
             <Route path="items" element={<ItemListPage />} />
             <Route path="incoming" element={<IncomingTransactionListPage />} />
             <Route path="outgoing" element={<OutgoingTransactionListPage />} />
-            <Route path="reports" element={<ReportsPage />} />
+            {/* Mengganti rute laporan umum dengan rute spesifik */}
+            <Route path="reports/incoming" element={<IncomingReportsPage />} />
+            <Route path="reports/outgoing" element={<OutgoingReportsPage />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
