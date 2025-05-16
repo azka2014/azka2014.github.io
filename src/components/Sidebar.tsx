@@ -22,7 +22,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     // Changed background to green-700, text to white, title to gray-200, hover states
     <div className={cn("flex flex-col space-y-2 p-4 border-r bg-green-700 text-gray-100", className)}>
       <h2 className="text-lg font-semibold mb-4 text-gray-200">Menu Navigasi</h2>
-      <nav className="flex flex-col space-y-1">
+      <nav className="flex flex-col space-y-1 flex-grow"> {/* Added flex-grow to push copyright to bottom */}
         {navItems.map((item) => (
           <Link
             key={item.name}
@@ -35,6 +35,10 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
           </Link>
         ))}
       </nav>
+      {/* Copyright text at the bottom */}
+      <div className="mt-auto pt-4 text-center text-xs text-gray-300"> {/* Added mt-auto to push it down */}
+        Copyright by Muhammad Safry, 2025
+      </div>
     </div>
   );
 };
