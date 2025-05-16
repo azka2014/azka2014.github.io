@@ -13,13 +13,18 @@ import OutgoingTransactionListPage from "./pages/OutgoingTransactionList";
 import ReportsPage from "./pages/ReportsPage";
 import MainLayout from "./components/MainLayout";
 import Login from "./pages/Login"; // Import Login page
-import { useSession } from '@supabase/auth-ui-react'; // Import useSession
+import { useSessionContext } from '@supabase/auth-ui-react'; // Import useSessionContext
 
 const queryClient = new QueryClient();
 
 // Component untuk melindungi rute
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
-  const session = useSession(); // Dapatkan sesi dari context
+  const { session, isLoading } = useSessionContext(); // Dapatkan sesi dan loading state dari context
+
+  // Jika masih loading, bisa tampilkan sesuatu (opsional)
+  if (isLoading) {
+      return <div>Loading...</div>; // Atau spinner, dll.
+  }
 
   // Jika sesi belum ada, arahkan ke halaman login
   if (!session) {

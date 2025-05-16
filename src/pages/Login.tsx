@@ -3,11 +3,11 @@ import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client'; // Import instance supabase
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSession } from '@supabase/auth-ui-react'; // Import useSession hook
+import { useSessionContext } from '@supabase/auth-ui-react'; // Import useSessionContext hook
 
 function Login() {
   const navigate = useNavigate();
-  const session = useSession(); // Gunakan useSession dari context
+  const { session } = useSessionContext(); // Gunakan useSessionContext dari context
 
   // Redirect jika pengguna sudah login
   useEffect(() => {
@@ -17,6 +17,7 @@ function Login() {
   }, [session, navigate]); // Tambahkan session dan navigate sebagai dependency
 
   // Jika session masih loading atau sudah ada, jangan tampilkan form login
+  // useSessionContext juga menyediakan isLoading, bisa digunakan jika perlu loading state
   if (session) {
       return null; // Atau tampilkan loading spinner jika diinginkan
   }
