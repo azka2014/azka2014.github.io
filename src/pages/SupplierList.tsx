@@ -21,19 +21,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Pencil, Trash2, PlusCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-// Import fungsi CRUD dari useInventory
-import { useInventory } from '@/context/InventoryContext';
+import { useInventory } from '@/context/InventoryContext'; // Import the context hook
 
 interface Supplier {
   id: string;
   name: string;
-  contact: string | null;
-  address: string | null;
+  contact: string;
+  address: string;
 }
 
 const SupplierListPage = () => {
-  // Gunakan fungsi CRUD dari useInventory
-  const { suppliers, addSupplier, updateSupplier, deleteSupplier, loading } = useInventory();
+  const { suppliers, dispatch } = useInventory(); // Use context
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentSupplier, setCurrentSupplier] = useState<Supplier | null>(null);
   const [formState, setFormState] = useState({ name: '', contact: '', address: '' });
@@ -49,7 +47,7 @@ const SupplierListPage = () => {
   const openDialog = (supplier?: Supplier) => {
     if (supplier) {
       setCurrentSupplier(supplier);
-      setFormState({ name: supplier.name, contact: supplier.contact || '', address: supplier.address || '' }); // Handle null values
+      setFormState({ name: supplier.name, contact: supplier.contact, address: supplier.address });
     } else {
       setCurrentSupplier(null);
       setFormState({ name: '', contact: '', address: '' });
@@ -64,12 +62,12 @@ const SupplierListPage = () => {
     setFormState({ name: '', contact: '', address: '' });
   };
 
-  // Save supplier (Add or Edit) - Sekarang memanggil fungsi Supabase
-  const saveSupplier = async () => { // Make function async
-    if (!formState.name) { // Only name is NOT NULL in DB
+  // Save supplier (Add or Edit)
+  const saveSupplier = () => {
+    if (!formState.name || !formState.contact || !formState.address) {
       toast({
         title: "Gagal",
-        description: "Nama suplier harus diisi.",
+        description: "Semua field harus diisi.",
         variant: "destructive",
       });
       return;
@@ -78,27 +76,33 @@ const SupplierListPage = () => {
     if (currentSupplier) {
       // Edit existing supplier
       const updatedSupplier = { ...currentSupplier, ...formState };
-      // Panggil fungsi updateSupplier dari context
-      await updateSupplier(updatedSupplier);
+      dispatch({ type: 'UPDATE_SUPPLIER', payload: updatedSupplier }); // Use dispatch
+      toast({
+        title: "Berhasil",
+        description: "Data suplier berhasil diupdate.",
+      });
     } else {
       // Add new supplier
-      const newSupplier = { // Omit id
-        name: formState.name,
-        contact: formState.contact || null, // Send null if empty string
-        address: formState.address || null, // Send null if empty string
+      const newSupplier: Supplier = {
+        id: Date.now().toString(), // Simple unique ID
+        ...formState,
       };
-      // Panggil fungsi addSupplier dari context
-      await addSupplier(newSupplier);
+      dispatch({ type: 'ADD_SUPPLIER', payload: newSupplier }); // Use dispatch
+      toast({
+        title: "Berhasil",
+        description: "Suplier baru berhasil ditambahkan.",
+      });
     }
     closeDialog();
   };
 
-  // Delete supplier - Sekarang memanggil fungsi Supabase
-  const handleDeleteSupplier = async (id: string) => { // Make function async
-    if (window.confirm("Apakah Anda yakin ingin menghapus suplier ini?")) {
-      // Panggil fungsi deleteSupplier dari context
-      await deleteSupplier(id);
-    }
+  // Delete supplier
+  const deleteSupplier = (id: string) => {
+    dispatch({ type: 'DELETE_SUPPLIER', payload: id }); // Use dispatch
+    toast({
+      title: "Berhasil",
+      description: "Suplier berhasil dihapus.",
+    });
   };
 
   return (
@@ -111,53 +115,48 @@ const SupplierListPage = () => {
         </Button>
       </div>
 
-      {loading ? (
-        <p>Memuat data...</p>
-      ) : (
-        <Table>
-          <TableHeader>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Nama Suplier</TableHead>
+            <TableHead>Kontak</TableHead>
+            <TableHead>Alamat</TableHead>
+            <TableHead className="text-right">Aksi</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {suppliers.length === 0 ? (
             <TableRow>
-              <TableHead>Nama Suplier</TableHead>
-              <TableHead>Kontak</TableHead>
-              <TableHead>Alamat</TableHead>
-              <TableHead className="text-right">Aksi</TableHead>
+              <TableCell colSpan={4} className="text-center">Belum ada data suplier.</TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {suppliers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center">Belum ada data suplier.</TableCell>
+          ) : (
+            suppliers.map((supplier) => (
+              <TableRow key={supplier.id}>
+                <TableCell>{supplier.name}</TableCell>
+                <TableCell>{supplier.contact}</TableCell>
+                <TableCell>{supplier.address}</TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mr-2"
+                    onClick={() => openDialog(supplier)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => deleteSupplier(supplier.id)}
+                  >
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                  </Button>
+                </TableCell>
               </TableRow>
-            ) : (
-              suppliers.map((supplier) => (
-                <TableRow key={supplier.id}>
-                  <TableCell>{supplier.name}</TableCell>
-                  <TableCell>{supplier.contact}</TableCell>
-                  <TableCell>{supplier.address}</TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="mr-2"
-                      onClick={() => openDialog(supplier)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteSupplier(supplier.id)} // Call new delete handler
-                    >
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      )}
-
+            ))
+          )}
+        </TableBody>
+      </Table>
 
       {/* Add/Edit Supplier Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

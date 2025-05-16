@@ -21,8 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Pencil, Trash2, PlusCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-// Import fungsi CRUD dari useInventory
-import { useInventory } from '@/context/InventoryContext';
+import { useInventory } from '@/context/InventoryContext'; // Import the context hook
 
 interface Item {
   id: string;
@@ -32,8 +31,7 @@ interface Item {
 }
 
 const ItemListPage = () => {
-  // Gunakan fungsi CRUD dari useInventory
-  const { items, addItem, updateItem, deleteItem, loading } = useInventory();
+  const { items, dispatch } = useInventory(); // Use context
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState<Item | null>(null);
   const [formState, setFormState] = useState({ name: '', unit: '' });
@@ -64,8 +62,8 @@ const ItemListPage = () => {
     setFormState({ name: '', unit: '' });
   };
 
-  // Save item (Add or Edit) - Sekarang memanggil fungsi Supabase
-  const saveItem = async () => { // Make function async
+  // Save item (Add or Edit)
+  const saveItem = () => {
     if (!formState.name || !formState.unit) {
       toast({
         title: "Gagal",
@@ -78,26 +76,34 @@ const ItemListPage = () => {
     if (currentItem) {
       // Edit existing item
       const updatedItem = { ...currentItem, ...formState };
-      // Panggil fungsi updateItem dari context
-      await updateItem(updatedItem);
+      dispatch({ type: 'UPDATE_ITEM', payload: updatedItem }); // Use dispatch
+      toast({
+        title: "Berhasil",
+        description: "Data barang berhasil diupdate.",
+      });
     } else {
       // Add new item
-      const newItem = { // Omit id and stock as they are handled by Supabase
-        name: formState.name,
-        unit: formState.unit,
+      const newItem: Item = {
+        id: Date.now().toString(), // Simple unique ID
+        ...formState,
+        stock: 0, // New items start with 0 stock
       };
-      // Panggil fungsi addItem dari context
-      await addItem(newItem);
+      dispatch({ type: 'ADD_ITEM', payload: newItem }); // Use dispatch
+      toast({
+        title: "Berhasil",
+        description: "Barang baru berhasil ditambahkan.",
+      });
     }
     closeDialog();
   };
 
-  // Delete item - Sekarang memanggil fungsi Supabase
-  const handleDeleteItem = async (id: string) => { // Make function async
-    if (window.confirm("Apakah Anda yakin ingin menghapus barang ini?")) {
-      // Panggil fungsi deleteItem dari context
-      await deleteItem(id);
-    }
+  // Delete item
+  const deleteItem = (id: string) => {
+    dispatch({ type: 'DELETE_ITEM', payload: id }); // Use dispatch
+    toast({
+      title: "Berhasil",
+      description: "Barang berhasil dihapus.",
+    });
   };
 
   return (
@@ -110,53 +116,48 @@ const ItemListPage = () => {
         </Button>
       </div>
 
-      {loading ? (
-        <p>Memuat data...</p>
-      ) : (
-        <Table>
-          <TableHeader>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Nama Barang</TableHead>
+            <TableHead>Satuan</TableHead>
+            <TableHead>Stok</TableHead>
+            <TableHead className="text-right">Aksi</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {items.length === 0 ? (
             <TableRow>
-              <TableHead>Nama Barang</TableHead>
-              <TableHead>Satuan</TableHead>
-              <TableHead>Stok</TableHead>
-              <TableHead className="text-right">Aksi</TableHead>
+              <TableCell colSpan={4} className="text-center">Belum ada data barang.</TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center">Belum ada data barang.</TableCell>
+          ) : (
+            items.map((item) => (
+              <TableRow key={item.id}>
+                <TableCell>{item.name}</TableCell>
+                <TableCell>{item.unit}</TableCell>
+                <TableCell>{item.stock}</TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mr-2"
+                    onClick={() => openDialog(item)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => deleteItem(item.id)}
+                  >
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                  </Button>
+                </TableCell>
               </TableRow>
-            ) : (
-              items.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>{item.name}</TableCell>
-                  <TableCell>{item.unit}</TableCell>
-                  <TableCell>{item.stock}</TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="mr-2"
-                      onClick={() => openDialog(item)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteItem(item.id)} // Call new delete handler
-                    >
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      )}
-
+            ))
+          )}
+        </TableBody>
+      </Table>
 
       {/* Add/Edit Item Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
