@@ -99,3 +99,63 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Print Styles */
+@media print {
+  /* Hide elements not needed for printing */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Ensure print-only elements are displayed */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Adjust layout for printing */
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: #fff; /* Ensure white background */
+    color: #000; /* Ensure black text */
+  }
+
+  /* Remove flex layout from main container if necessary */
+  .flex.min-h-screen {
+    display: block;
+  }
+
+  /* Adjust padding/margins for print */
+  .p-4 {
+    padding: 0 !important;
+  }
+
+  /* Ensure table borders are visible */
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  th, td {
+    border: 1px solid #000 !important;
+    padding: 8px !important;
+  }
+
+  /* Ensure card has no shadow/background in print */
+  .card {
+    box-shadow: none !important;
+    border: none !important;
+    background-color: transparent !important;
+  }
+
+  .card-header, .card-content {
+    padding: 0 !important;
+  }
+
+  /* Ensure the dynamic title is styled for print */
+  .print-only {
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 1.5em; /* Adjust font size for print title */
+  }
+}

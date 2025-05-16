@@ -16,7 +16,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Printer } from 'lucide-react'; // Import Printer icon
 import { Label } from '@/components/ui/label';
 
 const OutgoingReportsPage = () => {
@@ -34,7 +34,6 @@ const OutgoingReportsPage = () => {
   // State untuk filter (nilai yang dipilih di UI)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string | null>(null);
-  // Mengganti selectedDate dengan startDate dan endDate
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
 
@@ -48,6 +47,11 @@ const OutgoingReportsPage = () => {
   // Handler untuk tombol Proses
   const handleProcessReport = () => {
     setApplyFiltersTrigger(prev => prev + 1); // Increment state to trigger useMemo
+  };
+
+  // Handler untuk tombol Cetak
+  const handlePrint = () => {
+    window.print();
   };
 
   // Logika pemfilteran menggunakan useMemo, bergantung pada applyFiltersTrigger
@@ -78,13 +82,30 @@ const OutgoingReportsPage = () => {
     return filtered;
   }, [outgoingTransactions, selectedItemId, selectedDepartmentId, startDate, endDate, applyFiltersTrigger]); // Update dependencies
 
+  // Generate dynamic report title for printing
+  const reportTitle = useMemo(() => {
+    let title = "Laporan Persediaan Barang Keluar";
+    const dateFormat = "dd MMMM yyyy"; // Format tanggal yang diinginkan
+
+    if (startDate && endDate) {
+      title += ` per tanggal ${format(startDate, dateFormat)} - ${format(endDate, dateFormat)}`;
+    } else if (startDate) {
+      title += ` per tanggal ${format(startDate, dateFormat)}`;
+    } else if (endDate) {
+      title += ` sampai tanggal ${format(endDate, dateFormat)}`;
+    }
+
+    title += " RSUD Kabupaten Karo";
+    return title;
+  }, [startDate, endDate]);
+
 
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-6">Laporan Barang Keluar</h1>
+      <h1 className="text-2xl font-bold mb-6 no-print">Laporan Barang Keluar</h1> {/* Add no-print class */}
 
       {/* Filter Section */}
-      <Card className="mb-6">
+      <Card className="mb-6 no-print"> {/* Add no-print class */}
         <CardHeader>
           <CardTitle>Filter Laporan Barang Keluar</CardTitle>
         </CardHeader>
@@ -177,8 +198,12 @@ const OutgoingReportsPage = () => {
             </div>
           </div>
            {/* Proses Button */}
-           <div className="flex justify-end">
+           <div className="flex justify-end gap-2"> {/* Added gap-2 for spacing */}
               <Button onClick={handleProcessReport}>Proses Laporan</Button>
+              <Button onClick={handlePrint} variant="secondary"> {/* Added Print button */}
+                <Printer className="mr-2 h-4 w-4" />
+                Cetak Laporan
+              </Button>
            </div>
         </CardContent>
       </Card>
@@ -191,7 +216,9 @@ const OutgoingReportsPage = () => {
           {/* Laporan Barang Keluar Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Detail Barang Keluar ({filteredOutgoingTransactions.length} Transaksi)</CardTitle>
+               {/* Dynamic title for printing */}
+              <h2 className="text-xl font-bold mb-4 print-only">{reportTitle}</h2> {/* Add print-only class */}
+              <CardTitle className="no-print">Detail Barang Keluar ({filteredOutgoingTransactions.length} Transaksi)</CardTitle> {/* Add no-print class */}
             </CardHeader>
             <CardContent>
               <Table>
@@ -231,7 +258,7 @@ const OutgoingReportsPage = () => {
         </>
       )}
 
-       <Button variant="outline" className="mt-8" onClick={handleBackToDashboard}>
+       <Button variant="outline" className="mt-8 no-print" onClick={handleBackToDashboard}> {/* Add no-print class */}
         Kembali ke Dashboard
       </Button>
     </div>
