@@ -192,7 +192,7 @@ interface InventoryContextProps extends InventoryState {
   updateDepartment: (department: Department) => Promise<void>;
   deleteDepartment: (id: string) => Promise<void>;
   // Updated addItem to accept initialStock
-  addItem: (item: Omit<Item, 'id'>) => Promise<void>; // Now accepts 'stock' as initialStock
+  addItem: (item: { name: string; unit: string; initialStock: number }) => Promise<void>; // Now explicitly accepts initialStock
   updateItem: (item: Omit<Item, 'stock'>) => Promise<void>; // Stock is managed by transactions
   deleteItem: (id: string) => Promise<void>;
   addIncomingTransaction: (transaction: Omit<IncomingTransaction, 'id'>) => Promise<void>;
@@ -343,9 +343,9 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   // Updated addItem to accept initialStock
-  const addItem = async (item: Omit<Item, 'id'>) => {
-     // Include the initialStock when inserting
-    const { data, error } = await supabase.from('items').insert([{ name: item.name, unit: item.unit, stock: item.stock }]).select().single();
+  const addItem = async (item: { name: string; unit: string; initialStock: number }) => {
+     // Include the initialStock when inserting, mapping it to the 'stock' column
+    const { data, error } = await supabase.from('items').insert([{ name: item.name, unit: item.unit, stock: item.initialStock }]).select().single();
      if (error) {
       console.error("Error adding item:", error);
       toast({ title: "Gagal", description: `Gagal menambahkan barang: ${error.message}`, variant: "destructive" });
